@@ -28,6 +28,21 @@ func (a Application) String() string {
 	)
 }
 
+func NewApplication(pid int) (Application, error) {
+	proc, err := procfs.NewProc(pid)
+	if err != nil {
+		return Application{}, err
+	}
+	valid, app, err := newApplication(proc)
+	if err != nil {
+		return Application{}, err
+	}
+	if !valid {
+		return Application{}, fmt.Errorf("invalid app on PID %d", pid)
+	}
+	return app, nil
+}
+
 // newApplication creates Application from its Proc, if not valid as common not privilege as root or no such process,
 // valid would be false and the app shall be ignored. If exceptional failure, err not nil and shall panic.
 func newApplication(proc procfs.Proc) (valid bool, app Application, err error) {
