@@ -1,12 +1,14 @@
 package main
 
 import (
+	"amah/controller"
 	"amah/monitor"
 	"amah/service/auth"
 	"flag"
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"strings"
 )
 
@@ -30,6 +32,18 @@ func main() {
 	}
 
 	if *normalMode {
+		shadowLine, err := auth.Register("this_is_username", "this_is_password")
+		if err != nil {
+			log.Fatal(err)
+		}
+		accounts, _ := auth.ParseShadow(strings.NewReader(shadowLine))
+		service, err := auth.NewService(accounts)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c := controller.New(service)
+		err = http.ListenAndServe("localhost:8080", c)
+		log.Fatal(err)
 		return
 	}
 

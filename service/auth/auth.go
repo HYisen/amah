@@ -5,15 +5,23 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"os"
 	"strings"
+	"time"
 )
 
 type Account struct {
 	Username          string
 	EncryptedPassword string
+}
+
+type Token struct {
+	ID       string
+	ExpireAt time.Time
+	Username string
 }
 
 func newAccount(shadowLine string) (Account, error) {
@@ -29,6 +37,7 @@ func newAccount(shadowLine string) (Account, error) {
 
 type Service struct {
 	usernameToEncryptedPassword map[string]string
+	tokenIDToToken              map[string]Token
 }
 
 func LoadAccounts(shadowFilePath string) ([]Account, error) {
@@ -36,7 +45,7 @@ func LoadAccounts(shadowFilePath string) ([]Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read shadow file %s: %v", shadowFilePath, err)
 	}
-	ret, err := parseShadow(bytes.NewReader(data))
+	ret, err := ParseShadow(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("parse shadow file %s: %v", shadowFilePath, err)
 	}
@@ -48,10 +57,13 @@ func NewService(accounts []Account) (*Service, error) {
 	for _, account := range accounts {
 		usernameToEncryptedPassword[account.Username] = account.EncryptedPassword
 	}
-	return &Service{usernameToEncryptedPassword: usernameToEncryptedPassword}, nil
+	return &Service{
+		usernameToEncryptedPassword: usernameToEncryptedPassword,
+		tokenIDToToken:              make(map[string]Token),
+	}, nil
 }
 
-func parseShadow(reader io.Reader) ([]Account, error) {
+func ParseShadow(reader io.Reader) ([]Account, error) {
 	var ret []Account
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -82,6 +94,32 @@ func (s *Service) Auth(username, password string) (ok bool, err error) {
 		return false, e
 	}
 	return e == nil, nil
+}
+
+func expireAt(now time.Time) time.Time {
+	return now.Add(10 * time.Minute)
+}
+
+func (s *Service) CreateToken(Username string) Token {
+	ret := Token{
+		ID:       uuid.NewString(),
+		ExpireAt: expireAt(time.Now()),
+		Username: Username,
+	}
+	s.tokenIDToToken[ret.ID] = ret
+	return ret
+}
+
+func (s *Service) FindValidToken(id string) (t Token, ok bool) {
+	token, ok := s.tokenIDToToken[id]
+	if !ok {
+		return Token{}, false
+	}
+	if token.ExpireAt.Before(time.Now()) {
+		delete(s.tokenIDToToken, id)
+		return Token{}, false
+	}
+	return token, true
 }
 
 func Register(username, password string) (shadowLine string, err error) {

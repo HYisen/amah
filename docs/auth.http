@@ -1,0 +1,21 @@
+### Login Fail
+
+POST http://localhost:8080/v1/session
+Content-Type: application/json
+
+{
+  "username": "this_is_username",
+  "password": "b"
+}
+
+### Login Pass
+
+POST http://localhost:8080/v1/session
+Content-Type: application/json
+
+{
+  "username": "this_is_username",
+  "password": "this_is_password"
+}
+
+###
