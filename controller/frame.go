@@ -33,6 +33,7 @@ type Handler interface {
 	Parse(data []byte) (any, error)
 	Handle(ctx context.Context, req any) (rsp any, codedError *CodedError)
 	Format(output any) (data []byte, err error)
+	ResponseContentType() string // could use http.DetectContentType as default, which finds JSON as text/plain.
 }
 
 func Exact(method string, path string) func(req *http.Request) bool {
@@ -42,10 +43,11 @@ func Exact(method string, path string) func(req *http.Request) bool {
 }
 
 type ClosureHandler struct {
-	Matcher   func(req *http.Request) bool
-	Parser    func(data []byte) (any, error)
-	Handler   func(ctx context.Context, req any) (rsp any, codedError *CodedError)
-	Formatter func(output any) (data []byte, err error)
+	Matcher     func(req *http.Request) bool
+	Parser      func(data []byte) (any, error)
+	Handler     func(ctx context.Context, req any) (rsp any, codedError *CodedError)
+	Formatter   func(output any) (data []byte, err error)
+	ContentType string
 }
 
 func (ch *ClosureHandler) Match(req *http.Request) bool {
@@ -65,6 +67,10 @@ func (ch *ClosureHandler) Handle(
 
 func (ch *ClosureHandler) Format(output any) (data []byte, err error) {
 	return ch.Formatter(output)
+}
+
+func (ch *ClosureHandler) ResponseContentType() string {
+	return ch.ContentType
 }
 
 // Web is a helper to implements http.Handler as mux.
@@ -141,7 +147,7 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// Without setting, rely on http.DetectContentType invoked by Write to fulfill the MIME type.
+	writer.Header().Set("Content-Type", h.ResponseContentType())
 	_, _ = writer.Write(outputData)
 }
 

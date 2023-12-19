@@ -22,7 +22,8 @@ func New(authService *auth.Service) *Controller {
 		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.Login(ctx, req.(*LoginInfo))
 		},
-		Formatter: json.Marshal,
+		Formatter:   json.Marshal,
+		ContentType: "application/json; charset=utf-8",
 	}
 	v1GetApplications := &ClosureHandler{
 		Matcher: Exact(http.MethodGet, "/v1/applications"),
@@ -30,7 +31,8 @@ func New(authService *auth.Service) *Controller {
 		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.GetApplications(ctx)
 		},
-		Formatter: json.Marshal,
+		Formatter:   json.Marshal,
+		ContentType: "application/json; charset=utf-8",
 	}
 	ret.web = NewWeb(v1PostSession, v1GetApplications)
 	return ret
@@ -42,6 +44,7 @@ type LoginInfo struct {
 }
 
 func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.web.ServeHTTP(writer, request)
 }
 
