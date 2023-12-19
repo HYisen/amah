@@ -154,3 +154,7 @@ func JSONParser(clazz reflect.Type) func(data []byte) (any, error) {
 		return value.Interface(), nil
 	}
 }
+
+func ParseEmpty(_ []byte) (any, error) {
+	return nil, nil
+}
