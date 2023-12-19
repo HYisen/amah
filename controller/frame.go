@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"time"
 )
 
@@ -132,4 +134,14 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}
 	// Without setting, rely on http.DetectContentType invoked by Write to fulfill the MIME type.
 	_, _ = writer.Write(outputData)
+}
+
+func JSONParser(clazz reflect.Type) func(data []byte) (any, error) {
+	return func(data []byte) (any, error) {
+		value := reflect.New(clazz)
+		if err := json.Unmarshal(data, value.Interface()); err != nil {
+			return value, err
+		}
+		return value.Interface(), nil
+	}
 }

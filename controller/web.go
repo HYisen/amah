@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"reflect"
 )
 
 type Controller struct {
@@ -17,16 +18,9 @@ func New(authService *auth.Service) *Controller {
 	ret := &Controller{authService: authService}
 	v1PostSession := &ClosureHandler{
 		Matcher: Exact(http.MethodPost, "/v1/session"),
-		Parser: func(data []byte) (any, error) {
-			var li LoginInfo
-			err := json.Unmarshal(data, &li)
-			if err != nil {
-				return LoginInfo{}, err
-			}
-			return li, nil
-		},
+		Parser:  JSONParser(reflect.TypeOf(LoginInfo{})),
 		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
-			return ret.Login(ctx, req.(LoginInfo))
+			return ret.Login(ctx, req.(*LoginInfo))
 		},
 		Formatter: json.Marshal,
 	}
@@ -53,7 +47,7 @@ func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request
 	c.web.ServeHTTP(writer, request)
 }
 
-func (c *Controller) Login(_ context.Context, li LoginInfo) (t *auth.Token, e *CodedError) {
+func (c *Controller) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *CodedError) {
 	ok, err := c.authService.Auth(li.Username, li.Password)
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
