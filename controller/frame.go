@@ -67,6 +67,14 @@ func (ch *ClosureHandler) Format(output any) (data []byte, err error) {
 	return ch.Formatter(output)
 }
 
+// Web is a helper to implements http.Handler as mux.
+// There was a Handler[RequestType,ResponseType] design,
+// which is good as guaranteed type consistency between its methods,
+// but failed as it's []any, not []Handler[any,any] that accepts Handler[One,Two],
+// and in runtime, the interface conversion from Handler[any,any] to Handler[One,Two] failed.
+// Once I drop the type info, it can not come back even through cast.
+// The best performance strategy could be a code generator, which is complicated to implements.
+// Or just put the dirty transform work together as it was, which causes a lot of redundancy.
 type Web struct {
 	handlers []Handler
 }
@@ -91,6 +99,7 @@ func (w *Web) findHandler(req *http.Request) Handler {
 	return nil
 }
 
+// ServeHTTP implements that in interface.
 func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	h := w.findHandler(request)
 	if h == nil {
