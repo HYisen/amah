@@ -44,7 +44,6 @@ type LoginInfo struct {
 }
 
 func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.web.ServeHTTP(writer, request)
 }
 
