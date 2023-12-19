@@ -120,7 +120,7 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	ctx, cancel := serverContextCreator()
 	defer cancel()
 	output, e := h.Handle(ctx, input)
-	if err != nil {
+	if e != nil {
 		writer.WriteHeader(e.Code)
 		_, _ = writer.Write([]byte(e.Err.Error()))
 		return
