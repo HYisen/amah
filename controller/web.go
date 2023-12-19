@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 )
@@ -58,12 +57,10 @@ func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request
 		}
 	}
 	if request.URL.Path == "/v1/applications" && request.Method == http.MethodGet {
-		applications, err := monitor.Scan()
-		log.Print(applications)
-		if err != nil {
-			slog.Error("getApplications", err)
-			writer.WriteHeader(http.StatusInternalServerError)
-			_, _ = writer.Write([]byte(err.Error()))
+		applications, e := c.GetApplications()
+		if e != nil {
+			writer.WriteHeader(e.Code)
+			_, _ = writer.Write([]byte(e.Err.Error()))
 			return
 		}
 		data, err := json.Marshal(applications)
@@ -87,6 +84,14 @@ func (c *Controller) Login(username, password string) (t *auth.Token, e *CodedEr
 	}
 	token := c.authService.CreateToken(username)
 	return &token, nil
+}
+
+func (c *Controller) GetApplications() ([]monitor.Application, *CodedError) {
+	applications, err := monitor.Scan()
+	if err != nil {
+		return nil, NewCodedError(http.StatusInternalServerError, err)
+	}
+	return applications, nil
 }
 
 type CodedError struct {
