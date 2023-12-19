@@ -3,19 +3,45 @@ package controller
 import (
 	"amah/monitor"
 	"amah/service/auth"
+	"context"
 	"encoding/json"
-	"fmt"
-	"io"
-	"log/slog"
 	"net/http"
 )
 
 type Controller struct {
 	authService *auth.Service
+	web         *Web
 }
 
 func New(authService *auth.Service) *Controller {
-	return &Controller{authService: authService}
+	ret := &Controller{authService: authService}
+	v1PostSession := &ClosureHandler{
+		Matcher: Exact(http.MethodPost, "/v1/session"),
+		Parser: func(data []byte) (any, error) {
+			var li LoginInfo
+			err := json.Unmarshal(data, &li)
+			if err != nil {
+				return LoginInfo{}, err
+			}
+			return li, nil
+		},
+		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return ret.Login(ctx, req.(LoginInfo))
+		},
+		Formatter: json.Marshal,
+	}
+	v1GetApplications := &ClosureHandler{
+		Matcher: Exact(http.MethodGet, "/v1/applications"),
+		Parser: func(_ []byte) (any, error) {
+			return nil, nil
+		},
+		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return ret.GetApplications(ctx)
+		},
+		Formatter: json.Marshal,
+	}
+	ret.web = NewWeb(v1PostSession, v1GetApplications)
+	return ret
 }
 
 type LoginInfo struct {
@@ -24,89 +50,25 @@ type LoginInfo struct {
 }
 
 func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	if request.URL.Path == "/v1/session" {
-		if request.Method == http.MethodPost {
-			all, err := io.ReadAll(request.Body)
-			if err != nil {
-				slog.Error("unexpected failure on read", "err", err, "req", request)
-				writer.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			var li LoginInfo
-			err = json.Unmarshal(all, &li)
-			if err != nil {
-				slog.Warn("bad login request", "err", err, "req", request)
-				writer.WriteHeader(http.StatusBadRequest)
-				// Let it go when can not send the optional error info to client, which could be their problem.
-				_, _ = writer.Write([]byte(fmt.Sprintf("can not parse req %v as %v", request, err)))
-			}
-			token, e := c.Login(li.Username, li.Password)
-			if e != nil {
-				writer.WriteHeader(e.Code)
-				_, _ = writer.Write([]byte(e.Err.Error()))
-				return
-			}
-			data, err := json.Marshal(token)
-			if err != nil {
-				slog.Error("unexpected failure on marshal", "err", err)
-				writer.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			_, _ = writer.Write(data)
-			return
-		}
-	}
-	if request.URL.Path == "/v1/applications" && request.Method == http.MethodGet {
-		applications, e := c.GetApplications()
-		if e != nil {
-			writer.WriteHeader(e.Code)
-			_, _ = writer.Write([]byte(e.Err.Error()))
-			return
-		}
-		data, err := json.Marshal(applications)
-		if err != nil {
-			slog.Error("unexpected failure on marshal", "err", err)
-			writer.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		_, _ = writer.Write(data)
-		return
-	}
+	c.web.ServeHTTP(writer, request)
 }
 
-func (c *Controller) Login(username, password string) (t *auth.Token, e *CodedError) {
-	ok, err := c.authService.Auth(username, password)
+func (c *Controller) Login(_ context.Context, li LoginInfo) (t *auth.Token, e *CodedError) {
+	ok, err := c.authService.Auth(li.Username, li.Password)
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusForbidden, "no password on such username")
 	}
-	token := c.authService.CreateToken(username)
+	token := c.authService.CreateToken(li.Username)
 	return &token, nil
 }
 
-func (c *Controller) GetApplications() ([]monitor.Application, *CodedError) {
+func (c *Controller) GetApplications(_ context.Context) ([]monitor.Application, *CodedError) {
 	applications, err := monitor.Scan()
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	return applications, nil
-}
-
-type CodedError struct {
-	Code int
-	Err  error
-}
-
-func NewCodedError(code int, err error) *CodedError {
-	return &CodedError{Code: code, Err: err}
-}
-
-func NewCodedErrorf(code int, format string, a ...any) *CodedError {
-	return &CodedError{Code: code, Err: fmt.Errorf(format, a...)}
-}
-
-func (e CodedError) Error() string {
-	return fmt.Sprintf("%d: %v", e.Code, e.Err.Error())
 }
