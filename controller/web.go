@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"amah/monitor"
 	"amah/service/auth"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 )
@@ -52,7 +54,26 @@ func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request
 				return
 			}
 			_, _ = writer.Write(data)
+			return
 		}
+	}
+	if request.URL.Path == "/v1/applications" && request.Method == http.MethodGet {
+		applications, err := monitor.Scan()
+		log.Print(applications)
+		if err != nil {
+			slog.Error("getApplications", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			_, _ = writer.Write([]byte(err.Error()))
+			return
+		}
+		data, err := json.Marshal(applications)
+		if err != nil {
+			slog.Error("unexpected failure on marshal", "err", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_, _ = writer.Write(data)
+		return
 	}
 }
 

@@ -1,6 +1,6 @@
 ### Login Fail
 
-POST http://localhost:8080/v1/session
+POST {{host}}/v1/session
 Content-Type: application/json
 
 {
@@ -10,7 +10,7 @@ Content-Type: application/json
 
 ### Login Pass
 
-POST http://localhost:8080/v1/session
+POST {{host}}/v1/session
 Content-Type: application/json
 
 {

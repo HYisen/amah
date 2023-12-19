@@ -42,7 +42,7 @@ func main() {
 			log.Fatal(err)
 		}
 		c := controller.New(service)
-		err = http.ListenAndServe("localhost:8080", c)
+		err = http.ListenAndServe("0.0.0.0:8080", c)
 		log.Fatal(err)
 		return
 	}
