@@ -5,6 +5,7 @@ import (
 	"amah/service/auth"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"reflect"
 )
@@ -59,7 +60,13 @@ func (c *Controller) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *
 	return &token, nil
 }
 
-func (c *Controller) GetApplications(_ context.Context) ([]monitor.Application, *CodedError) {
+func (c *Controller) GetApplications(ctx context.Context) ([]monitor.Application, *CodedError) {
+	tokenID := DetachToken(ctx)
+	t, ok := c.authService.FindValidToken(tokenID)
+	if !ok {
+		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
+	}
+	slog.Debug("getApplications", "user", t.Username)
 	applications, err := monitor.Scan()
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)

@@ -18,4 +18,13 @@ Content-Type: application/json
   "password": "this_is_password"
 }
 
+> {%
+    client.global.set("token", response.body.ID);
+%}
+
+### GetApplications
+
+GET {{host}}/v1/applications
+Token: {{token}}
+
 ###

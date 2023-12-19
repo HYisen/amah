@@ -134,6 +134,7 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 	ctx, cancel := serverContextCreator()
 	defer cancel()
+	ctx = AttachToken(ctx, request.Header.Get("Token"))
 	output, e := h.Handle(ctx, input)
 	if e != nil {
 		writer.WriteHeader(e.Code)
@@ -149,6 +150,16 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.Header().Set("Content-Type", h.ResponseContentType())
 	_, _ = writer.Write(outputData)
+}
+
+const ctxTokenKey = "token"
+
+func AttachToken(ctx context.Context, token string) context.Context {
+	return context.WithValue(ctx, ctxTokenKey, token)
+}
+
+func DetachToken(ctx context.Context) string {
+	return ctx.Value(ctxTokenKey).(string)
 }
 
 func JSONParser(clazz reflect.Type) func(data []byte) (any, error) {
