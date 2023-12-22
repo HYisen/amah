@@ -19,7 +19,7 @@ type Application struct {
 }
 
 func (a Application) AbsolutePath() string {
-	if strings.HasPrefix(a.Exec.Path, "/") {
+	if filepath.IsAbs(a.Exec.Path) {
 		return a.Exec.Path
 	}
 	return filepath.Join(a.Exec.WorkingDirectory, a.Exec.Path)
