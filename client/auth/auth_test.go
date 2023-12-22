@@ -30,7 +30,7 @@ func Test_Encrypt(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			service, err := NewService([]Account{account})
+			service, err := NewClient([]Account{account})
 			if err != nil {
 				t.Error(err)
 				return

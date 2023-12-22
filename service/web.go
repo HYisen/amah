@@ -1,21 +1,21 @@
-package controller
+package service
 
 import (
-	"amah/monitor"
-	"amah/service/auth"
+	"amah/client/auth"
+	"amah/client/monitor"
 	"context"
 	"log/slog"
 	"net/http"
 	"reflect"
 )
 
-type Controller struct {
-	authService *auth.Service
-	web         *Web
+type Service struct {
+	authClient *auth.Client
+	web        *Web
 }
 
-func New(authService *auth.Service) *Controller {
-	ret := &Controller{authService: authService}
+func New(authService *auth.Client) *Service {
+	ret := &Service{authClient: authService}
 	v1PostSession := NewJSONHandler(
 		Exact(http.MethodPost, "/v1/session"),
 		reflect.TypeOf(LoginInfo{}),
@@ -39,25 +39,25 @@ type LoginInfo struct {
 	Password string `json:"password"`
 }
 
-func (c *Controller) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (c *Service) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	c.web.ServeHTTP(writer, request)
 }
 
-func (c *Controller) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *CodedError) {
-	ok, err := c.authService.Auth(li.Username, li.Password)
+func (c *Service) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *CodedError) {
+	ok, err := c.authClient.Auth(li.Username, li.Password)
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusForbidden, "no password on such username")
 	}
-	token := c.authService.CreateToken(li.Username)
+	token := c.authClient.CreateToken(li.Username)
 	return &token, nil
 }
 
-func (c *Controller) GetApplications(ctx context.Context) ([]monitor.Application, *CodedError) {
+func (c *Service) GetApplications(ctx context.Context) ([]monitor.Application, *CodedError) {
 	tokenID := DetachToken(ctx)
-	t, ok := c.authService.FindValidToken(tokenID)
+	t, ok := c.authClient.FindValidToken(tokenID)
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}

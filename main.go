@@ -1,9 +1,9 @@
 package main
 
 import (
-	"amah/controller"
-	"amah/monitor"
-	"amah/service/auth"
+	"amah/client/auth"
+	"amah/client/monitor"
+	"amah/service"
 	"flag"
 	"fmt"
 	"log"
@@ -37,11 +37,11 @@ func main() {
 			log.Fatal(err)
 		}
 		accounts, _ := auth.ParseShadow(strings.NewReader(shadowLine))
-		service, err := auth.NewService(accounts)
+		client, err := auth.NewClient(accounts)
 		if err != nil {
 			log.Fatal(err)
 		}
-		c := controller.New(service)
+		c := service.New(client)
 		err = http.ListenAndServe("0.0.0.0:8080", c)
 		log.Fatal(err)
 		return

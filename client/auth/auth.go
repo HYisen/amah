@@ -35,7 +35,7 @@ func newAccount(shadowLine string) (Account, error) {
 	}, nil
 }
 
-type Service struct {
+type Client struct {
 	usernameToEncryptedPassword map[string]string
 	tokenIDToToken              map[string]Token
 }
@@ -52,12 +52,12 @@ func LoadAccounts(shadowFilePath string) ([]Account, error) {
 	return ret, nil
 }
 
-func NewService(accounts []Account) (*Service, error) {
+func NewClient(accounts []Account) (*Client, error) {
 	usernameToEncryptedPassword := make(map[string]string)
 	for _, account := range accounts {
 		usernameToEncryptedPassword[account.Username] = account.EncryptedPassword
 	}
-	return &Service{
+	return &Client{
 		usernameToEncryptedPassword: usernameToEncryptedPassword,
 		tokenIDToToken:              make(map[string]Token),
 	}, nil
@@ -78,7 +78,7 @@ func ParseShadow(reader io.Reader) ([]Account, error) {
 
 var dummyEncryptedPasswordData, _ = bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
 
-func (s *Service) Auth(username, password string) (ok bool, err error) {
+func (s *Client) Auth(username, password string) (ok bool, err error) {
 	encryptedPassword, ok := s.usernameToEncryptedPassword[username]
 	encryptedPasswordData := []byte(encryptedPassword)
 	if !ok {
@@ -100,7 +100,7 @@ func expireAt(now time.Time) time.Time {
 	return now.Add(10 * time.Minute)
 }
 
-func (s *Service) CreateToken(Username string) Token {
+func (s *Client) CreateToken(Username string) Token {
 	ret := Token{
 		ID:       uuid.NewString(),
 		ExpireAt: expireAt(time.Now()),
@@ -110,7 +110,7 @@ func (s *Service) CreateToken(Username string) Token {
 	return ret
 }
 
-func (s *Service) FindValidToken(id string) (t Token, ok bool) {
+func (s *Client) FindValidToken(id string) (t Token, ok bool) {
 	token, ok := s.tokenIDToToken[id]
 	if !ok {
 		return Token{}, false
