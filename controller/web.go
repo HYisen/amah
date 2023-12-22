@@ -28,7 +28,7 @@ func New(authService *auth.Service) *Controller {
 	}
 	v1GetApplications := &ClosureHandler{
 		Matcher: Exact(http.MethodGet, "/v1/applications"),
-		Parser:  ParseEmpty,
+		Parser:  JSONParser(reflect.TypeOf(Empty{})),
 		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.GetApplications(ctx)
 		},

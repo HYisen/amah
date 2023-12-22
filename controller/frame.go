@@ -50,6 +50,10 @@ type ClosureHandler struct {
 	ContentType string
 }
 
+// Empty types used on JSONParser indicates that no data and shall use ParseEmpty.
+type Empty struct {
+}
+
 func (ch *ClosureHandler) Match(req *http.Request) bool {
 	return ch.Matcher(req)
 }
@@ -163,6 +167,9 @@ func DetachToken(ctx context.Context) string {
 }
 
 func JSONParser(clazz reflect.Type) func(data []byte) (any, error) {
+	if clazz == reflect.TypeOf(Empty{}) {
+		return ParseEmpty
+	}
 	return func(data []byte) (any, error) {
 		value := reflect.New(clazz)
 		if err := json.Unmarshal(data, value.Interface()); err != nil {
