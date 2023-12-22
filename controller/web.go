@@ -4,7 +4,6 @@ import (
 	"amah/monitor"
 	"amah/service/auth"
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -17,24 +16,20 @@ type Controller struct {
 
 func New(authService *auth.Service) *Controller {
 	ret := &Controller{authService: authService}
-	v1PostSession := &ClosureHandler{
-		Matcher: Exact(http.MethodPost, "/v1/session"),
-		Parser:  JSONParser(reflect.TypeOf(LoginInfo{})),
-		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+	v1PostSession := NewJSONHandler(
+		Exact(http.MethodPost, "/v1/session"),
+		reflect.TypeOf(LoginInfo{}),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.Login(ctx, req.(*LoginInfo))
 		},
-		Formatter:   json.Marshal,
-		ContentType: "application/json; charset=utf-8",
-	}
-	v1GetApplications := &ClosureHandler{
-		Matcher: Exact(http.MethodGet, "/v1/applications"),
-		Parser:  JSONParser(reflect.TypeOf(Empty{})),
-		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+	)
+	v1GetApplications := NewJSONHandler(
+		Exact(http.MethodGet, "/v1/applications"),
+		reflect.TypeOf(Empty{}),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.GetApplications(ctx)
 		},
-		Formatter:   json.Marshal,
-		ContentType: "application/json; charset=utf-8",
-	}
+	)
 	ret.web = NewWeb(v1PostSession, v1GetApplications)
 	return ret
 }

@@ -36,18 +36,32 @@ type Handler interface {
 	ResponseContentType() string // could use http.DetectContentType as default, which finds JSON as text/plain.
 }
 
-func Exact(method string, path string) func(req *http.Request) bool {
+type MatchFunc func(req *http.Request) bool
+
+func Exact(method string, path string) MatchFunc {
 	return func(req *http.Request) bool {
 		return req.URL.Path == path && req.Method == method
 	}
 }
 
+type HandleFunc func(ctx context.Context, req any) (rsp any, codedError *CodedError)
+
 type ClosureHandler struct {
-	Matcher     func(req *http.Request) bool
+	Matcher     MatchFunc
 	Parser      func(data []byte) (any, error)
-	Handler     func(ctx context.Context, req any) (rsp any, codedError *CodedError)
+	Handler     HandleFunc
 	Formatter   func(output any) (data []byte, err error)
 	ContentType string
+}
+
+func NewJSONHandler(matcher MatchFunc, requestType reflect.Type, handler HandleFunc) *ClosureHandler {
+	return &ClosureHandler{
+		Matcher:     matcher,
+		Parser:      JSONParser(requestType),
+		Handler:     handler,
+		Formatter:   json.Marshal,
+		ContentType: "application/json; charset=utf-8",
+	}
 }
 
 // Empty types used on JSONParser indicates that no data and shall use ParseEmpty.
