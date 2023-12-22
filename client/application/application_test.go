@@ -25,7 +25,6 @@ func convert(raw Exec) struct {
 }
 
 func TestApplication_AbsolutePath(t *testing.T) {
-
 	tests := []struct {
 		name string
 		exec Exec
@@ -35,12 +34,17 @@ func TestApplication_AbsolutePath(t *testing.T) {
 			WorkingDirectory: "/tmp",
 			Path:             "top",
 			Args:             nil,
-		}, "/tmp/top"},
+		}, "/usr/bin/top"},
 		{"abs", Exec{
 			WorkingDirectory: "/tmp",
 			Path:             "/usr/bin/top",
 			Args:             nil,
 		}, "/usr/bin/top"},
+		{"not exists", Exec{
+			WorkingDirectory: "/tmp",
+			Path:             "a-test-file-not-exists",
+			Args:             nil,
+		}, "/tmp/a-test-file-not-exists"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

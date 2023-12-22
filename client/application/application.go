@@ -4,6 +4,9 @@ import (
 	_ "embed"
 	"gopkg.in/yaml.v3"
 	"io"
+	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -19,10 +22,18 @@ type Application struct {
 }
 
 func (a Application) AbsolutePath() string {
-	if filepath.IsAbs(a.Exec.Path) {
-		return a.Exec.Path
+	exe := path.Clean(a.Exec.Path)
+	if filepath.IsAbs(exe) {
+		return exe
 	}
-	return filepath.Join(a.Exec.WorkingDirectory, a.Exec.Path)
+	ret := filepath.Join(a.Exec.WorkingDirectory, exe)
+	if _, err := os.Stat(ret); os.IsNotExist(err) {
+		if p, e := exec.LookPath(exe); e == nil {
+			// For case if not in WorkingDirectory but in $PATH
+			return p
+		}
+	}
+	return ret
 }
 
 type Repository struct {

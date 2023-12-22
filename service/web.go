@@ -145,9 +145,14 @@ func (s *Service) DeleteProcess(ctx context.Context, pid int) *CodedError {
 	return nil
 }
 
-func (s *Service) GetApplications(ctx context.Context) ([]application.Application, *CodedError) {
+func (s *Service) GetApplications(ctx context.Context) ([]ApplicationComplex, *CodedError) {
 	if err := s.authenticate(ctx, ""); err != nil {
 		return nil, err
 	}
-	return s.applicationRepository.FindAll(), nil
+	applications := s.applicationRepository.FindAll()
+	processes, err := s.monitorClient.Scan()
+	if err != nil {
+		return nil, NewCodedError(http.StatusInternalServerError, err)
+	}
+	return CombineTheoryAndReality(applications, processes), nil
 }
