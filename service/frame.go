@@ -155,7 +155,11 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	ctx = AttachToken(ctx, request.Header.Get("Token"))
 	output, e := h.Handle(ctx, input)
 	if e != nil {
-		writer.WriteHeader(e.Code)
+		if IsUserFault(e.Code) {
+			slog.Warn("resp " + e.Error())
+		} else {
+			slog.Error("resp " + e.Error())
+		}
 		_, _ = writer.Write([]byte(e.Err.Error()))
 		return
 	}
@@ -168,6 +172,10 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.Header().Set("Content-Type", h.ResponseContentType())
 	_, _ = writer.Write(outputData)
+}
+
+func IsUserFault(httpStatusCode int) bool {
+	return httpStatusCode/100 == 4
 }
 
 const ctxTokenKey = "token"

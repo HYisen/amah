@@ -82,7 +82,8 @@ func (s *Service) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *Cod
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	if !ok {
-		return nil, NewCodedErrorf(http.StatusForbidden, "no password on such username")
+		// the incorrect credential is less sensitive, so just carry it and make it printable in error.
+		return nil, NewCodedErrorf(http.StatusForbidden, "no password[%s] on username[%s]", li.Password, li.Username)
 	}
 	token := s.authClient.CreateToken(li.Username)
 	return &token, nil
