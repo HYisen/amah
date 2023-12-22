@@ -10,12 +10,17 @@ import (
 )
 
 type Service struct {
-	authClient *auth.Client
-	web        *Web
+	authClient    *auth.Client
+	monitorClient *monitor.Client
+	web           *Web
 }
 
-func New(authClient *auth.Client) *Service {
-	ret := &Service{authClient: authClient}
+func New(authClient *auth.Client, monitorClient *monitor.Client) *Service {
+	ret := &Service{
+		authClient:    authClient,
+		monitorClient: monitorClient,
+		web:           nil,
+	}
 	v1PostSession := NewJSONHandler(
 		Exact(http.MethodPost, "/v1/session"),
 		reflect.TypeOf(LoginInfo{}),
@@ -62,7 +67,7 @@ func (c *Service) GetApplications(ctx context.Context) ([]monitor.Application, *
 		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}
 	slog.Debug("getApplications", "user", t.Username)
-	applications, err := monitor.Scan()
+	applications, err := c.monitorClient.Scan()
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}

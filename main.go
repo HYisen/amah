@@ -41,13 +41,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		c := service.New(client)
+		c := service.New(client, monitor.NewClient())
 		err = http.ListenAndServe("0.0.0.0:8080", c)
 		log.Fatal(err)
 		return
 	}
 
-	apps, err := monitor.Scan()
+	apps, err := monitor.NewClient().Scan()
 	if err != nil {
 		log.Fatal(err)
 	}
