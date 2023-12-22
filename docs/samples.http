@@ -27,4 +27,7 @@ Content-Type: application/json
 GET {{host}}/v1/applications
 Token: {{token}}
 
-###
+### DeleteApplication (a.k.a kill by PID)
+
+DELETE {{host}}/v1/applications/186451
+Token: {{token}}

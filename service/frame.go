@@ -30,7 +30,7 @@ func (e CodedError) Error() string {
 
 type Handler interface {
 	Match(req *http.Request) bool
-	Parse(data []byte) (any, error)
+	Parse(data []byte, path string) (any, error)
 	Handle(ctx context.Context, req any) (rsp any, codedError *CodedError)
 	Format(output any) (data []byte, err error)
 	ResponseContentType() string // could use http.DetectContentType as default, which finds JSON as text/plain.
@@ -48,7 +48,7 @@ type HandleFunc func(ctx context.Context, req any) (rsp any, codedError *CodedEr
 
 type ClosureHandler struct {
 	Matcher     MatchFunc
-	Parser      func(data []byte) (any, error)
+	Parser      func(data []byte, path string) (any, error)
 	Handler     HandleFunc
 	Formatter   func(output any) (data []byte, err error)
 	ContentType string
@@ -72,8 +72,8 @@ func (ch *ClosureHandler) Match(req *http.Request) bool {
 	return ch.Matcher(req)
 }
 
-func (ch *ClosureHandler) Parse(data []byte) (any, error) {
-	return ch.Parser(data)
+func (ch *ClosureHandler) Parse(data []byte, path string) (any, error) {
+	return ch.Parser(data, path)
 }
 
 func (ch *ClosureHandler) Handle(
@@ -141,7 +141,7 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	input, err := h.Parse(inputData)
+	input, err := h.Parse(inputData, request.URL.Path)
 	if err != nil {
 		slog.Warn("bad input format", "err", err, "req", request)
 		writer.WriteHeader(http.StatusBadRequest)
@@ -180,11 +180,11 @@ func DetachToken(ctx context.Context) string {
 	return ctx.Value(ctxTokenKey).(string)
 }
 
-func JSONParser(clazz reflect.Type) func(data []byte) (any, error) {
+func JSONParser(clazz reflect.Type) func(data []byte, _ string) (any, error) {
 	if clazz == reflect.TypeOf(Empty{}) {
 		return ParseEmpty
 	}
-	return func(data []byte) (any, error) {
+	return func(data []byte, _ string) (any, error) {
 		value := reflect.New(clazz)
 		if err := json.Unmarshal(data, value.Interface()); err != nil {
 			return value, err
@@ -193,6 +193,10 @@ func JSONParser(clazz reflect.Type) func(data []byte) (any, error) {
 	}
 }
 
-func ParseEmpty(_ []byte) (any, error) {
+func ParseEmpty(_ []byte, _ string) (any, error) {
+	return nil, nil
+}
+
+func FormatEmpty(_ any) (data []byte, err error) {
 	return nil, nil
 }

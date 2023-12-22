@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 type Service struct {
@@ -35,7 +37,33 @@ func New(authClient *auth.Client, monitorClient *monitor.Client) *Service {
 			return ret.GetApplications(ctx)
 		},
 	)
-	ret.web = NewWeb(v1PostSession, v1GetApplications)
+	v1DeleteApplication := &ClosureHandler{
+		Matcher: func(req *http.Request) bool {
+			if req.Method != http.MethodDelete {
+				return false
+			}
+			id, found := strings.CutPrefix(req.URL.Path, "/v1/applications/")
+			if !found {
+				return false
+			}
+			if _, err := strconv.Atoi(id); err != nil {
+				return false
+			}
+			return true
+		},
+		Parser: func(_ []byte, path string) (any, error) {
+			// The Matcher shall have guaranteed a valid number here. So we can skip validation here.
+			str := path[strings.LastIndexByte(path, '/')+1:]
+			num, _ := strconv.Atoi(str)
+			return num, nil
+		},
+		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return nil, ret.DeleteApplication(ctx, req.(int))
+		},
+		Formatter:   FormatEmpty,
+		ContentType: http.DetectContentType(nil),
+	}
+	ret.web = NewWeb(v1PostSession, v1GetApplications, v1DeleteApplication)
 	return ret
 }
 
@@ -67,9 +95,28 @@ func (s *Service) GetApplications(ctx context.Context) ([]monitor.Application, *
 		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}
 	slog.Debug("getApplications", "user", t.Username)
+
 	applications, err := s.monitorClient.Scan()
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	return applications, nil
+}
+
+func (s *Service) DeleteApplication(ctx context.Context, pid int) *CodedError {
+	tokenID := DetachToken(ctx)
+	t, ok := s.authClient.FindValidToken(tokenID)
+	if !ok {
+		return NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
+	}
+	slog.Info("DeleteApplication", "pid", pid, "user", t.Username)
+
+	found, err := s.monitorClient.Kill(pid)
+	if err != nil {
+		return NewCodedError(http.StatusInternalServerError, err)
+	}
+	if !found {
+		return NewCodedErrorf(http.StatusNotFound, "no process on pid %d", pid)
+	}
+	return nil
 }
