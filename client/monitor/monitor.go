@@ -16,14 +16,14 @@ func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) Scan() ([]Application, error) {
+func (c *Client) Scan() ([]Process, error) {
 	procs, err := procfs.AllProcs()
 	if err != nil {
 		return nil, err
 	}
-	var ret []Application
+	var ret []Process
 	for _, proc := range procs {
-		valid, app, err := newApplication(proc)
+		valid, app, err := newProcess(proc)
 		if err != nil {
 			return nil, err
 		}

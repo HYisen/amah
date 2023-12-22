@@ -30,19 +30,19 @@ func New(authClient *auth.Client, monitorClient *monitor.Client) *Service {
 			return ret.Login(ctx, req.(*LoginInfo))
 		},
 	)
-	v1GetApplications := NewJSONHandler(
-		Exact(http.MethodGet, "/v1/applications"),
+	v1GetProcesses := NewJSONHandler(
+		Exact(http.MethodGet, "/v1/processes"),
 		reflect.TypeOf(Empty{}),
 		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
-			return ret.GetApplications(ctx)
+			return ret.GetProcesses(ctx)
 		},
 	)
-	v1DeleteApplication := &ClosureHandler{
+	v1DeleteProcess := &ClosureHandler{
 		Matcher: func(req *http.Request) bool {
 			if req.Method != http.MethodDelete {
 				return false
 			}
-			id, found := strings.CutPrefix(req.URL.Path, "/v1/applications/")
+			id, found := strings.CutPrefix(req.URL.Path, "/v1/processes/")
 			if !found {
 				return false
 			}
@@ -58,12 +58,12 @@ func New(authClient *auth.Client, monitorClient *monitor.Client) *Service {
 			return num, nil
 		},
 		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
-			return nil, ret.DeleteApplication(ctx, req.(int))
+			return nil, ret.DeleteProcess(ctx, req.(int))
 		},
 		Formatter:   FormatEmpty,
 		ContentType: http.DetectContentType(nil),
 	}
-	ret.web = NewWeb(v1PostSession, v1GetApplications, v1DeleteApplication)
+	ret.web = NewWeb(v1PostSession, v1GetProcesses, v1DeleteProcess)
 	return ret
 }
 
@@ -89,28 +89,28 @@ func (s *Service) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *Cod
 	return &token, nil
 }
 
-func (s *Service) GetApplications(ctx context.Context) ([]monitor.Application, *CodedError) {
+func (s *Service) GetProcesses(ctx context.Context) ([]monitor.Process, *CodedError) {
 	tokenID := DetachToken(ctx)
 	t, ok := s.authClient.FindValidToken(tokenID)
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}
-	slog.Debug("getApplications", "user", t.Username)
+	slog.Debug("GetProcesses", "user", t.Username)
 
-	applications, err := s.monitorClient.Scan()
+	processes, err := s.monitorClient.Scan()
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
-	return applications, nil
+	return processes, nil
 }
 
-func (s *Service) DeleteApplication(ctx context.Context, pid int) *CodedError {
+func (s *Service) DeleteProcess(ctx context.Context, pid int) *CodedError {
 	tokenID := DetachToken(ctx)
 	t, ok := s.authClient.FindValidToken(tokenID)
 	if !ok {
 		return NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}
-	slog.Info("DeleteApplication", "pid", pid, "user", t.Username)
+	slog.Info("DeleteProcess", "pid", pid, "user", t.Username)
 
 	found, err := s.monitorClient.Kill(pid)
 	if err != nil {

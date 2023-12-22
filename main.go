@@ -47,17 +47,17 @@ func main() {
 		return
 	}
 
-	apps, err := monitor.NewClient().Scan()
+	processes, err := monitor.NewClient().Scan()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if *scanMode {
-		for _, app := range apps {
+		for _, app := range processes {
 			fmt.Printf("%+v\n", app)
 		}
 		return
 	}
-	targets := filterByExecutableSuffix(apps, *exeSuffix)
+	targets := filterByExecutableSuffix(processes, *exeSuffix)
 	if len(targets) > 1 {
 		slog.Warn("multiple result", "count", len(targets), "suffix", *exeSuffix)
 	}
@@ -65,17 +65,17 @@ func main() {
 		fmt.Println(target)
 	}
 	if len(targets) == 0 {
-		app, err := monitor.NewApplication(targets[0].PID)
+		proc, err := monitor.NewProcess(targets[0].PID)
 		if err != nil {
 			slog.Error(err.Error())
 			return
 		}
-		fmt.Println(app)
+		fmt.Println(proc)
 	}
 }
 
-func filterByExecutableSuffix(apps []monitor.Application, suffix string) []monitor.Application {
-	var ret []monitor.Application
+func filterByExecutableSuffix(apps []monitor.Process, suffix string) []monitor.Process {
+	var ret []monitor.Process
 	for _, app := range apps {
 		if strings.HasSuffix(app.Path, suffix) {
 			ret = append(ret, app)

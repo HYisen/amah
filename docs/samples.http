@@ -22,12 +22,12 @@ Content-Type: application/json
     client.global.set("token", response.body.ID);
 %}
 
-### GetApplications
+### GetProcesses
 
-GET {{host}}/v1/applications
+GET {{host}}/v1/processes
 Token: {{token}}
 
-### DeleteApplication (a.k.a kill by PID)
+### DeleteProcess (a.k.a kill by PID)
 
-DELETE {{host}}/v1/applications/186451
+DELETE {{host}}/v1/processes/186451
 Token: {{token}}
