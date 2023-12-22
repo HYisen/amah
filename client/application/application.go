@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"gopkg.in/yaml.v3"
 	"io"
+	"path/filepath"
 	"strings"
 )
 
@@ -11,10 +12,17 @@ type Application struct {
 	ID   int
 	Name string
 	Exec struct {
-		WorkingDirectory string
+		WorkingDirectory string `yaml:"workingDirectory"`
 		Path             string
 		Args             []string
 	}
+}
+
+func (a Application) AbsolutePath() string {
+	if strings.HasPrefix(a.Exec.Path, "/") {
+		return a.Exec.Path
+	}
+	return filepath.Join(a.Exec.WorkingDirectory, a.Exec.Path)
 }
 
 type Repository struct {
