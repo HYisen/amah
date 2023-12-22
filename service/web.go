@@ -14,8 +14,8 @@ type Service struct {
 	web        *Web
 }
 
-func New(authService *auth.Client) *Service {
-	ret := &Service{authClient: authService}
+func New(authClient *auth.Client) *Service {
+	ret := &Service{authClient: authClient}
 	v1PostSession := NewJSONHandler(
 		Exact(http.MethodPost, "/v1/session"),
 		reflect.TypeOf(LoginInfo{}),
