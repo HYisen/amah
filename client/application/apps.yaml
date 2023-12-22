@@ -1,0 +1,6 @@
+- id: 1000
+  name: top
+  exec:
+    workingDirectory: /tmp
+    path: top
+    args: [ "-o" ,"%MEM" ]

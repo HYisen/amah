@@ -1,6 +1,7 @@
 package main
 
 import (
+	"amah/client/application"
 	"amah/client/auth"
 	"amah/client/monitor"
 	"amah/service"
@@ -41,7 +42,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		c := service.New(client, monitor.NewClient())
+		repository, err := application.NewRepository()
+		if err != nil {
+			log.Fatal(err)
+		}
+		c := service.New(client, monitor.NewClient(), repository)
 		err = http.ListenAndServe("0.0.0.0:8080", c)
 		log.Fatal(err)
 		return

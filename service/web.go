@@ -1,6 +1,7 @@
 package service
 
 import (
+	"amah/client/application"
 	"amah/client/auth"
 	"amah/client/monitor"
 	"context"
@@ -12,16 +13,22 @@ import (
 )
 
 type Service struct {
-	authClient    *auth.Client
-	monitorClient *monitor.Client
-	web           *Web
+	authClient            *auth.Client
+	monitorClient         *monitor.Client
+	applicationRepository *application.Repository
+	web                   *Web
 }
 
-func New(authClient *auth.Client, monitorClient *monitor.Client) *Service {
+func New(
+	authClient *auth.Client,
+	monitorClient *monitor.Client,
+	applicationRepository *application.Repository,
+) *Service {
 	ret := &Service{
-		authClient:    authClient,
-		monitorClient: monitorClient,
-		web:           nil,
+		authClient:            authClient,
+		monitorClient:         monitorClient,
+		applicationRepository: applicationRepository,
+		web:                   nil,
 	}
 	v1PostSession := NewJSONHandler(
 		Exact(http.MethodPost, "/v1/session"),
@@ -63,7 +70,14 @@ func New(authClient *auth.Client, monitorClient *monitor.Client) *Service {
 		Formatter:   FormatEmpty,
 		ContentType: http.DetectContentType(nil),
 	}
-	ret.web = NewWeb(v1PostSession, v1GetProcesses, v1DeleteProcess)
+	v1GetApplications := NewJSONHandler(
+		Exact(http.MethodGet, "/v1/applications"),
+		reflect.TypeOf(Empty{}),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return ret.GetApplications(ctx)
+		},
+	)
+	ret.web = NewWeb(v1PostSession, v1GetProcesses, v1DeleteProcess, v1GetApplications)
 	return ret
 }
 
@@ -89,13 +103,25 @@ func (s *Service) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *Cod
 	return &token, nil
 }
 
-func (s *Service) GetProcesses(ctx context.Context) ([]monitor.Process, *CodedError) {
+// authenticate auth by ctx and return an 403 *CodedError if fails.
+// If logHeaderNullable not empty string, a log with the header name and username would happen.
+func (s *Service) authenticate(ctx context.Context, logHeaderNullable string) *CodedError {
 	tokenID := DetachToken(ctx)
 	t, ok := s.authClient.FindValidToken(tokenID)
 	if !ok {
-		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
+		return NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}
-	slog.Debug("GetProcesses", "user", t.Username)
+
+	if logHeaderNullable != "" {
+		slog.Info(logHeaderNullable, "user", t.Username)
+	}
+	return nil
+}
+
+func (s *Service) GetProcesses(ctx context.Context) ([]monitor.Process, *CodedError) {
+	if err := s.authenticate(ctx, ""); err != nil {
+		return nil, err
+	}
 
 	processes, err := s.monitorClient.Scan()
 	if err != nil {
@@ -105,12 +131,9 @@ func (s *Service) GetProcesses(ctx context.Context) ([]monitor.Process, *CodedEr
 }
 
 func (s *Service) DeleteProcess(ctx context.Context, pid int) *CodedError {
-	tokenID := DetachToken(ctx)
-	t, ok := s.authClient.FindValidToken(tokenID)
-	if !ok {
-		return NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
+	if err := s.authenticate(ctx, "DeleteProcess"); err != nil {
+		return err
 	}
-	slog.Info("DeleteProcess", "pid", pid, "user", t.Username)
 
 	found, err := s.monitorClient.Kill(pid)
 	if err != nil {
@@ -120,4 +143,11 @@ func (s *Service) DeleteProcess(ctx context.Context, pid int) *CodedError {
 		return NewCodedErrorf(http.StatusNotFound, "no process on pid %d", pid)
 	}
 	return nil
+}
+
+func (s *Service) GetApplications(ctx context.Context) ([]application.Application, *CodedError) {
+	if err := s.authenticate(ctx, ""); err != nil {
+		return nil, err
+	}
+	return s.applicationRepository.FindAll(), nil
 }

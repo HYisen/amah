@@ -29,5 +29,11 @@ Token: {{token}}
 
 ### DeleteProcess (a.k.a kill by PID)
 
+# Find the proper UID through launch one and GetProcesses or ps.
 DELETE {{host}}/v1/processes/186451
+Token: {{token}}
+
+### GetApplications
+
+GET {{host}}/v1/applications
 Token: {{token}}
