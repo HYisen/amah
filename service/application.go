@@ -3,7 +3,6 @@ package service
 import (
 	"amah/client/application"
 	"amah/client/monitor"
-	"log"
 	"log/slog"
 	"os"
 	"path"
@@ -77,9 +76,7 @@ func combine(
 	appIDToRoots = make(map[int][]*Node)
 	for _, proc := range processes {
 		for _, app := range applications {
-			similar := Similar(app, proc)
-			log.Printf("%v %v %v\n", similar, app, proc)
-			if similar {
+			if Similar(app, proc) {
 				appIDToRoots[app.ID] = append(appIDToRoots[app.ID], &Node{
 					Process:  proc,
 					Children: nil,
