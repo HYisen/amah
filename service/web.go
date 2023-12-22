@@ -44,30 +44,30 @@ type LoginInfo struct {
 	Password string `json:"password"`
 }
 
-func (c *Service) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	c.web.ServeHTTP(writer, request)
+func (s *Service) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	s.web.ServeHTTP(writer, request)
 }
 
-func (c *Service) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *CodedError) {
-	ok, err := c.authClient.Auth(li.Username, li.Password)
+func (s *Service) Login(_ context.Context, li *LoginInfo) (t *auth.Token, e *CodedError) {
+	ok, err := s.authClient.Auth(li.Username, li.Password)
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusForbidden, "no password on such username")
 	}
-	token := c.authClient.CreateToken(li.Username)
+	token := s.authClient.CreateToken(li.Username)
 	return &token, nil
 }
 
-func (c *Service) GetApplications(ctx context.Context) ([]monitor.Application, *CodedError) {
+func (s *Service) GetApplications(ctx context.Context) ([]monitor.Application, *CodedError) {
 	tokenID := DetachToken(ctx)
-	t, ok := c.authClient.FindValidToken(tokenID)
+	t, ok := s.authClient.FindValidToken(tokenID)
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusForbidden, "invalid token on id %v", tokenID)
 	}
 	slog.Debug("getApplications", "user", t.Username)
-	applications, err := c.monitorClient.Scan()
+	applications, err := s.monitorClient.Scan()
 	if err != nil {
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}

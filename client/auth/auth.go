@@ -78,8 +78,8 @@ func ParseShadow(reader io.Reader) ([]Account, error) {
 
 var dummyEncryptedPasswordData, _ = bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
 
-func (s *Client) Auth(username, password string) (ok bool, err error) {
-	encryptedPassword, ok := s.usernameToEncryptedPassword[username]
+func (c *Client) Auth(username, password string) (ok bool, err error) {
+	encryptedPassword, ok := c.usernameToEncryptedPassword[username]
 	encryptedPasswordData := []byte(encryptedPassword)
 	if !ok {
 		// If 404, crypto/bcrypt: hashedSecret too short to be a bcrypted password.
@@ -100,23 +100,23 @@ func expireAt(now time.Time) time.Time {
 	return now.Add(10 * time.Minute)
 }
 
-func (s *Client) CreateToken(Username string) Token {
+func (c *Client) CreateToken(Username string) Token {
 	ret := Token{
 		ID:       uuid.NewString(),
 		ExpireAt: expireAt(time.Now()),
 		Username: Username,
 	}
-	s.tokenIDToToken[ret.ID] = ret
+	c.tokenIDToToken[ret.ID] = ret
 	return ret
 }
 
-func (s *Client) FindValidToken(id string) (t Token, ok bool) {
-	token, ok := s.tokenIDToToken[id]
+func (c *Client) FindValidToken(id string) (t Token, ok bool) {
+	token, ok := c.tokenIDToToken[id]
 	if !ok {
 		return Token{}, false
 	}
 	if token.ExpireAt.Before(time.Now()) {
-		delete(s.tokenIDToToken, id)
+		delete(c.tokenIDToToken, id)
 		return Token{}, false
 	}
 	return token, true
