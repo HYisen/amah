@@ -45,6 +45,8 @@ func (r *Ring[T]) Get() []T {
 	return ret
 }
 
+// Add adds the item to Ring.
+// Cost 3 ns, little relevant to capacity.
 func (r *Ring[T]) Add(item T) {
 	if r.end < len(r.items) {
 		if !r.spacious && r.begin == r.end {

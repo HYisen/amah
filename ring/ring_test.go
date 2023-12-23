@@ -107,3 +107,21 @@ func (r *Ring[T]) GetSimple() []T {
 	}
 	return ret
 }
+
+func BenchmarkRing_Add(b *testing.B) {
+	nameToCap := map[string]int{
+		"10":   10,
+		"100":  100,
+		"1k":   1000,
+		"10k":  10_000,
+		"100k": 100_000,
+	}
+	for name, capacity := range nameToCap {
+		r := New[int](capacity)
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				r.Add(i)
+			}
+		})
+	}
+}
