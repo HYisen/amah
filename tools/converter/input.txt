@@ -1,0 +1,140 @@
+BenchmarkRing_Get/v0_1k_25%
+BenchmarkRing_Get/v0_1k_25%-20         	 1708902	       653.0 ns/op
+BenchmarkRing_Get/v1_1k_25%
+BenchmarkRing_Get/v1_1k_25%-20         	 5543876	       241.0 ns/op
+BenchmarkRing_Get/v0_1k_50%
+BenchmarkRing_Get/v0_1k_50%-20         	  897081	      1251 ns/op
+BenchmarkRing_Get/v1_1k_50%
+BenchmarkRing_Get/v1_1k_50%-20         	 2552188	       510.5 ns/op
+BenchmarkRing_Get/v0_1k_100%
+BenchmarkRing_Get/v0_1k_100%-20        	  381939	      2916 ns/op
+BenchmarkRing_Get/v1_1k_100%
+BenchmarkRing_Get/v1_1k_100%-20        	 1269676	       900.7 ns/op
+BenchmarkRing_Get/v0_1k_125%
+BenchmarkRing_Get/v0_1k_125%-20        	  384060	      2802 ns/op
+BenchmarkRing_Get/v1_1k_125%
+BenchmarkRing_Get/v1_1k_125%-20        	 1201742	       950.1 ns/op
+BenchmarkRing_Get/v0_1k_150%
+BenchmarkRing_Get/v0_1k_150%-20        	  384080	      3011 ns/op
+BenchmarkRing_Get/v1_1k_150%
+BenchmarkRing_Get/v1_1k_150%-20        	 1276339	       943.2 ns/op
+BenchmarkRing_Get/v0_1k_175%
+BenchmarkRing_Get/v0_1k_175%-20        	  389450	      3285 ns/op
+BenchmarkRing_Get/v1_1k_175%
+BenchmarkRing_Get/v1_1k_175%-20        	 1000000	      1037 ns/op
+BenchmarkRing_Get/v0_1k_few
+BenchmarkRing_Get/v0_1k_few-20         	15085610	        77.66 ns/op
+BenchmarkRing_Get/v1_1k_few
+BenchmarkRing_Get/v1_1k_few-20         	68155515	        18.15 ns/op
+BenchmarkRing_Get/v0_10k_100%
+BenchmarkRing_Get/v0_10k_100%-20       	   30993	     35313 ns/op
+BenchmarkRing_Get/v1_10k_100%
+BenchmarkRing_Get/v1_10k_100%-20       	  202442	      6372 ns/op
+BenchmarkRing_Get/v0_10k_125%
+BenchmarkRing_Get/v0_10k_125%-20       	   31285	     35782 ns/op
+BenchmarkRing_Get/v1_10k_125%
+BenchmarkRing_Get/v1_10k_125%-20       	  179146	      6540 ns/op
+BenchmarkRing_Get/v0_10k_150%
+BenchmarkRing_Get/v0_10k_150%-20       	   35641	     35143 ns/op
+BenchmarkRing_Get/v1_10k_150%
+BenchmarkRing_Get/v1_10k_150%-20       	  156164	      6733 ns/op
+BenchmarkRing_Get/v0_10k_175%
+BenchmarkRing_Get/v0_10k_175%-20       	   30384	     35755 ns/op
+BenchmarkRing_Get/v1_10k_175%
+BenchmarkRing_Get/v1_10k_175%-20       	  207678	      6532 ns/op
+BenchmarkRing_Get/v0_10k_few
+BenchmarkRing_Get/v0_10k_few-20        	14707459	        81.78 ns/op
+BenchmarkRing_Get/v1_10k_few
+BenchmarkRing_Get/v1_10k_few-20        	62176029	        18.47 ns/op
+BenchmarkRing_Get/v0_10k_25%
+BenchmarkRing_Get/v0_10k_25%-20        	  139425	      8192 ns/op
+BenchmarkRing_Get/v1_10k_25%
+BenchmarkRing_Get/v1_10k_25%-20        	  605893	      2002 ns/op
+BenchmarkRing_Get/v0_10k_50%
+BenchmarkRing_Get/v0_10k_50%-20        	   79518	     15033 ns/op
+BenchmarkRing_Get/v1_10k_50%
+BenchmarkRing_Get/v1_10k_50%-20        	  357528	      3522 ns/op
+BenchmarkRing_Get/v0_100k_50%
+BenchmarkRing_Get/v0_100k_50%-20       	    6486	    193615 ns/op
+BenchmarkRing_Get/v1_100k_50%
+BenchmarkRing_Get/v1_100k_50%-20       	   39508	     33670 ns/op
+BenchmarkRing_Get/v0_100k_100%
+BenchmarkRing_Get/v0_100k_100%-20      	    2451	    410245 ns/op
+BenchmarkRing_Get/v1_100k_100%
+BenchmarkRing_Get/v1_100k_100%-20      	   18546	     63010 ns/op
+BenchmarkRing_Get/v0_100k_125%
+BenchmarkRing_Get/v0_100k_125%-20      	    2934	    443435 ns/op
+BenchmarkRing_Get/v1_100k_125%
+BenchmarkRing_Get/v1_100k_125%-20      	   18039	     68926 ns/op
+BenchmarkRing_Get/v0_100k_150%
+BenchmarkRing_Get/v0_100k_150%-20      	    2605	    465857 ns/op
+BenchmarkRing_Get/v1_100k_150%
+BenchmarkRing_Get/v1_100k_150%-20      	   18424	     64396 ns/op
+BenchmarkRing_Get/v0_100k_175%
+BenchmarkRing_Get/v0_100k_175%-20      	    2670	    467556 ns/op
+BenchmarkRing_Get/v1_100k_175%
+BenchmarkRing_Get/v1_100k_175%-20      	   18559	     65362 ns/op
+BenchmarkRing_Get/v0_100k_few
+BenchmarkRing_Get/v0_100k_few-20       	12592838	        87.06 ns/op
+BenchmarkRing_Get/v1_100k_few
+BenchmarkRing_Get/v1_100k_few-20       	63264724	        19.53 ns/op
+BenchmarkRing_Get/v0_100k_25%
+BenchmarkRing_Get/v0_100k_25%-20       	   10000	    100238 ns/op
+BenchmarkRing_Get/v1_100k_25%
+BenchmarkRing_Get/v1_100k_25%-20       	   72348	     16548 ns/op
+BenchmarkRing_Get/v0_10_125%
+BenchmarkRing_Get/v0_10_125%-20        	10432831	       116.5 ns/op
+BenchmarkRing_Get/v1_10_125%
+BenchmarkRing_Get/v1_10_125%-20        	45814386	        25.93 ns/op
+BenchmarkRing_Get/v0_10_150%
+BenchmarkRing_Get/v0_10_150%-20        	10115172	       119.8 ns/op
+BenchmarkRing_Get/v1_10_150%
+BenchmarkRing_Get/v1_10_150%-20        	46996006	        24.93 ns/op
+BenchmarkRing_Get/v0_10_175%
+BenchmarkRing_Get/v0_10_175%-20        	10109324	       113.7 ns/op
+BenchmarkRing_Get/v1_10_175%
+BenchmarkRing_Get/v1_10_175%-20        	45127838	        25.71 ns/op
+BenchmarkRing_Get/v0_10_few
+BenchmarkRing_Get/v0_10_few-20         	14100470	        78.50 ns/op
+BenchmarkRing_Get/v1_10_few
+BenchmarkRing_Get/v1_10_few-20         	67937666	        17.99 ns/op
+BenchmarkRing_Get/v0_10_25%
+BenchmarkRing_Get/v0_10_25%-20         	34790758	        33.67 ns/op
+BenchmarkRing_Get/v1_10_25%
+BenchmarkRing_Get/v1_10_25%-20         	78973346	        14.38 ns/op
+BenchmarkRing_Get/v0_10_50%
+BenchmarkRing_Get/v0_10_50%-20         	14515498	        79.16 ns/op
+BenchmarkRing_Get/v1_10_50%
+BenchmarkRing_Get/v1_10_50%-20         	64618179	        17.82 ns/op
+BenchmarkRing_Get/v0_10_100%
+BenchmarkRing_Get/v0_10_100%-20        	10284376	       110.7 ns/op
+BenchmarkRing_Get/v1_10_100%
+BenchmarkRing_Get/v1_10_100%-20        	53746083	        21.58 ns/op
+BenchmarkRing_Get/v0_100_125%
+BenchmarkRing_Get/v0_100_125%-20       	 3326154	       362.3 ns/op
+BenchmarkRing_Get/v1_100_125%
+BenchmarkRing_Get/v1_100_125%-20       	10196140	       125.5 ns/op
+BenchmarkRing_Get/v0_100_150%
+BenchmarkRing_Get/v0_100_150%-20       	 3015037	       363.8 ns/op
+BenchmarkRing_Get/v1_100_150%
+BenchmarkRing_Get/v1_100_150%-20       	 9172038	       115.7 ns/op
+BenchmarkRing_Get/v0_100_175%
+BenchmarkRing_Get/v0_100_175%-20       	 3151480	       363.4 ns/op
+BenchmarkRing_Get/v1_100_175%
+BenchmarkRing_Get/v1_100_175%-20       	 9408588	       132.2 ns/op
+BenchmarkRing_Get/v0_100_few
+BenchmarkRing_Get/v0_100_few-20        	14526511	        80.80 ns/op
+BenchmarkRing_Get/v1_100_few
+BenchmarkRing_Get/v1_100_few-20        	62265963	        18.77 ns/op
+BenchmarkRing_Get/v0_100_25%
+BenchmarkRing_Get/v0_100_25%-20        	 6704302	       159.1 ns/op
+BenchmarkRing_Get/v1_100_25%
+BenchmarkRing_Get/v1_100_25%-20        	33586670	        38.87 ns/op
+BenchmarkRing_Get/v0_100_50%
+BenchmarkRing_Get/v0_100_50%-20        	 4842327	       250.7 ns/op
+BenchmarkRing_Get/v1_100_50%
+BenchmarkRing_Get/v1_100_50%-20        	20259344	        61.03 ns/op
+BenchmarkRing_Get/v0_100_100%
+BenchmarkRing_Get/v0_100_100%-20       	 3073395	       380.4 ns/op
+BenchmarkRing_Get/v1_100_100%
+BenchmarkRing_Get/v1_100_100%-20       	10985169	       123.6 ns/op
