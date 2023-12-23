@@ -117,7 +117,7 @@ func (c *Client) Query() []string {
 }
 
 // Terminate stops the running of helper, which little relevant to the started app.
-// It means the tee mechanism stops pip output to RedirectPath and the Query is no longer available.
+// It means the tee mechanism stops pipe output to RedirectPath and the Query is no longer available.
 func (c *Client) Terminate() {
 	c.cancel()
 	c.cancel = nil
