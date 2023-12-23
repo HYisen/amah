@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -44,6 +46,28 @@ func Exact(method string, path string) MatchFunc {
 	}
 }
 
+func ResourceWithID(method string, pathPrefixWithTailSlash string, pathSuffixWithHeadSlashNullable string) MatchFunc {
+	return func(req *http.Request) bool {
+		if req.Method != method {
+			return false
+		}
+		s, found := strings.CutPrefix(req.URL.Path, pathPrefixWithTailSlash)
+		if !found {
+			return false
+		}
+		if pathSuffixWithHeadSlashNullable != "" {
+			s, found = strings.CutSuffix(s, pathSuffixWithHeadSlashNullable)
+			if !found {
+				return false
+			}
+		}
+		if _, err := strconv.Atoi(s); err != nil {
+			return false
+		}
+		return true
+	}
+}
+
 type HandleFunc func(ctx context.Context, req any) (rsp any, codedError *CodedError)
 
 type ClosureHandler struct {
@@ -54,13 +78,15 @@ type ClosureHandler struct {
 	ContentType string
 }
 
+const JSONContentType = "application/json; charset=utf-8"
+
 func NewJSONHandler(matcher MatchFunc, requestType reflect.Type, handler HandleFunc) *ClosureHandler {
 	return &ClosureHandler{
 		Matcher:     matcher,
 		Parser:      JSONParser(requestType),
 		Handler:     handler,
 		Formatter:   json.Marshal,
-		ContentType: "application/json; charset=utf-8",
+		ContentType: JSONContentType,
 	}
 }
 
@@ -188,7 +214,9 @@ func DetachToken(ctx context.Context) string {
 	return ctx.Value(ctxTokenKey).(string)
 }
 
-func JSONParser(clazz reflect.Type) func(data []byte, _ string) (any, error) {
+type ParseFunc func(data []byte, path string) (req any, err error)
+
+func JSONParser(clazz reflect.Type) ParseFunc {
 	if clazz == reflect.TypeOf(Empty{}) {
 		return ParseEmpty
 	}
@@ -198,6 +226,22 @@ func JSONParser(clazz reflect.Type) func(data []byte, _ string) (any, error) {
 			return value, err
 		}
 		return value.Interface(), nil
+	}
+}
+
+func PathIDParser(pathSuffixWithHeadSlashNullable string) ParseFunc {
+	return func(_ []byte, path string) (any, error) {
+		if pathSuffixWithHeadSlashNullable != "" {
+			rest, found := strings.CutSuffix(path, pathSuffixWithHeadSlashNullable)
+			if !found {
+				return 0, fmt.Errorf("no suffix %v in path %v", pathSuffixWithHeadSlashNullable, path)
+			}
+			path = rest
+		}
+		// The Matcher shall have guaranteed a valid number here. So we can skip validation here.
+		str := path[strings.LastIndexByte(path, '/')+1:]
+		num, _ := strconv.Atoi(str)
+		return num, nil
 	}
 }
 

@@ -37,3 +37,8 @@ Token: {{token}}
 
 GET {{host}}/v1/applications
 Token: {{token}}
+
+### StartApplication
+
+PUT {{host}}/v1/applications/1002/instances
+Token: {{token}}

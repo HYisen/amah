@@ -4,3 +4,18 @@
     workingDirectory: /tmp
     path: top
     args: [ "-o" ,"%MEM" ]
+    redirectPath: /dev/null
+- id: 1001
+  name: clock
+  exec:
+    workingDirectory: /tmp
+    path: sh
+    args: [ "-c" ,"date && sleep 2 && date" ]
+    redirectPath: ./clock_output
+- id: 1002
+  name: bomb
+  exec:
+    workingDirectory: /tmp
+    path: /home/alex/code/countdowner
+    args: [ "--num=3" , ]
+    redirectPath: ./bomb_output

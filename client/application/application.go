@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -18,11 +17,12 @@ type Application struct {
 		WorkingDirectory string `yaml:"workingDirectory"`
 		Path             string
 		Args             []string
+		RedirectPath     string `yaml:"redirectPath"`
 	}
 }
 
 func (a Application) AbsolutePath() string {
-	exe := path.Clean(a.Exec.Path)
+	exe := filepath.Clean(a.Exec.Path)
 	if filepath.IsAbs(exe) {
 		return exe
 	}
@@ -34,6 +34,13 @@ func (a Application) AbsolutePath() string {
 		}
 	}
 	return ret
+}
+
+func (a Application) AbsoluteRedirectPath() string {
+	if filepath.IsAbs(a.Exec.RedirectPath) {
+		return filepath.Clean(a.Exec.RedirectPath)
+	}
+	return filepath.Clean(filepath.Join(a.Exec.WorkingDirectory, a.Exec.RedirectPath))
 }
 
 type Repository struct {
@@ -62,4 +69,13 @@ func NewRepository() (*Repository, error) {
 
 func (r *Repository) FindAll() []Application {
 	return r.data
+}
+
+func (r *Repository) Find(id int) (app Application, ok bool) {
+	for _, app := range r.data {
+		if app.ID == id {
+			return app, true
+		}
+	}
+	return Application{}, false
 }

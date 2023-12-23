@@ -5,17 +5,20 @@ import (
 	"amah/client/auth"
 	"amah/client/monitor"
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
+	"sync"
 )
 
 type Service struct {
 	authClient            *auth.Client
 	monitorClient         *monitor.Client
 	applicationRepository *application.Repository
+	appIDToClients        map[int]*application.Client
+	mu                    sync.Mutex // guard actions likes exec with scan that shall escape race condition
 	web                   *Web
 }
 
@@ -28,6 +31,8 @@ func New(
 		authClient:            authClient,
 		monitorClient:         monitorClient,
 		applicationRepository: applicationRepository,
+		appIDToClients:        make(map[int]*application.Client),
+		mu:                    sync.Mutex{},
 		web:                   nil,
 	}
 	v1PostSession := NewJSONHandler(
@@ -45,25 +50,8 @@ func New(
 		},
 	)
 	v1DeleteProcess := &ClosureHandler{
-		Matcher: func(req *http.Request) bool {
-			if req.Method != http.MethodDelete {
-				return false
-			}
-			id, found := strings.CutPrefix(req.URL.Path, "/v1/processes/")
-			if !found {
-				return false
-			}
-			if _, err := strconv.Atoi(id); err != nil {
-				return false
-			}
-			return true
-		},
-		Parser: func(_ []byte, path string) (any, error) {
-			// The Matcher shall have guaranteed a valid number here. So we can skip validation here.
-			str := path[strings.LastIndexByte(path, '/')+1:]
-			num, _ := strconv.Atoi(str)
-			return num, nil
-		},
+		Matcher: ResourceWithID(http.MethodDelete, "/v1/processes/", ""),
+		Parser:  PathIDParser(""),
 		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return nil, ret.DeleteProcess(ctx, req.(int))
 		},
@@ -77,7 +65,17 @@ func New(
 			return ret.GetApplications(ctx)
 		},
 	)
-	ret.web = NewWeb(v1PostSession, v1GetProcesses, v1DeleteProcess, v1GetApplications)
+	const v1PutApplicationPathSuffix = "/instances"
+	v1PutApplication := &ClosureHandler{
+		Matcher: ResourceWithID(http.MethodPut, "/v1/applications/", v1PutApplicationPathSuffix),
+		Parser:  PathIDParser(v1PutApplicationPathSuffix),
+		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return ret.StartApplication(ctx, req.(int))
+		},
+		Formatter:   json.Marshal,
+		ContentType: JSONContentType,
+	}
+	ret.web = NewWeb(v1PostSession, v1GetProcesses, v1DeleteProcess, v1GetApplications, v1PutApplication)
 	return ret
 }
 
@@ -155,4 +153,50 @@ func (s *Service) GetApplications(ctx context.Context) ([]ApplicationComplex, *C
 		return nil, NewCodedError(http.StatusInternalServerError, err)
 	}
 	return CombineTheoryAndReality(applications, processes), nil
+}
+
+func (s *Service) findApplicationComplex(appID int) (ApplicationComplex, *CodedError) {
+	app, ok := s.applicationRepository.Find(appID)
+	if !ok {
+		return ApplicationComplex{}, NewCodedErrorf(http.StatusNotFound, "no app on id %d", appID)
+	}
+
+	processes, err := s.monitorClient.Scan()
+	if err != nil {
+		return ApplicationComplex{}, NewCodedError(http.StatusInternalServerError, err)
+	}
+
+	return CombineTheoryAndReality([]application.Application{app}, processes)[0], nil
+}
+
+func (s *Service) StartApplication(ctx context.Context, appID int) (ApplicationComplex, *CodedError) {
+	if err := s.authenticate(ctx, "StartApplication "+strconv.Itoa(appID)); err != nil {
+		return ApplicationComplex{}, err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Just prevent concurrent StartApplication,
+	// It's user's duty to keep external exec away to achieve atomicity.
+	app, err := s.findApplicationComplex(appID)
+	if err != nil {
+		return ApplicationComplex{}, err
+	}
+
+	if len(app.Instances) > 0 {
+		return ApplicationComplex{}, NewCodedErrorf(http.StatusConflict, "running duplicates %d", len(app.Instances))
+	}
+
+	// I think 1k line is long enough.
+	client, e := application.NewClient(app.Application, 1000)
+	if e != nil {
+		return ApplicationComplex{}, NewCodedError(http.StatusServiceUnavailable, e)
+	}
+	s.appIDToClients[appID] = client
+
+	app, err = s.findApplicationComplex(appID)
+	if err != nil {
+		return ApplicationComplex{}, err
+	}
+	return app, nil
 }
