@@ -13,12 +13,14 @@ import (
 type Application struct {
 	ID   int
 	Name string
-	Exec struct {
-		WorkingDirectory string `yaml:"workingDirectory"`
-		Path             string
-		Args             []string
-		RedirectPath     string `yaml:"redirectPath"`
-	}
+	Exec Exec
+}
+
+type Exec struct {
+	WorkingDirectory string `yaml:"workingDirectory"`
+	Path             string
+	Args             []string
+	RedirectPath     string `yaml:"redirectPath"`
 }
 
 func (a Application) AbsolutePath() string {

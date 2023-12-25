@@ -6,24 +6,6 @@ import (
 	"testing"
 )
 
-type Exec struct {
-	WorkingDirectory string
-	Path             string
-	Args             []string
-}
-
-func convert(raw Exec) struct {
-	WorkingDirectory string `yaml:"workingDirectory"`
-	Path             string
-	Args             []string
-} {
-	return struct {
-		WorkingDirectory string `yaml:"workingDirectory"`
-		Path             string
-		Args             []string
-	}(raw)
-}
-
 func TestApplication_AbsolutePath(t *testing.T) {
 	tests := []struct {
 		name string
@@ -48,7 +30,7 @@ func TestApplication_AbsolutePath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := Application{Exec: convert(tt.exec)}
+			a := Application{Exec: tt.exec}
 			if got := a.AbsolutePath(); got != tt.want {
 				t.Errorf("AbsolutePath() = %v, want %v", got, tt.want)
 			}
@@ -71,11 +53,11 @@ func Test_parse(t *testing.T) {
     args: [ "-o" ,"%MEM" ]`, []Application{{
 			ID:   1000,
 			Name: "top",
-			Exec: convert(Exec{
+			Exec: Exec{
 				WorkingDirectory: "/tmp",
 				Path:             "top",
 				Args:             []string{"-o", "%MEM"},
-			}),
+			},
 		}}, false},
 	}
 	for _, tt := range tests {
