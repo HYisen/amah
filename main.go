@@ -10,6 +10,8 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 )
 
@@ -17,10 +19,30 @@ var scanMode = flag.Bool("scanMode", false, "enable scan mode")
 var exeSuffix = flag.String("exeSuffix", "java", "match suffix of target application executable")
 var normalMode = flag.Bool("normalMode", true, "enable normal mode that works as gateway and keeper")
 var appConfigPath = flag.String("appConfigPath", "apps.yaml", "the applications config path")
+
 var listenAddress = flag.String("listenAddress", "0.0.0.0:8080", "where the server serve")
+var certFile = flag.String("certFile", "", "HTTPS cert filepath, not empty no HTTP")
+var keyFile = flag.String("keyFile", "", "HTTPS key filepath, not empty no HTTP")
+
+var portBasic = flag.Int("portBasic", 8600, "where the control plane serve on localhost")
+var addrOther = flag.String("addrOther", "https://localhost:8443", "where the fallback serve")
 
 var newUsername = flag.String("newUsername", "", "the new username to generate shadow line to append")
 var newPassword = flag.String("newPassword", "", "the new password to generate shadow line to append")
+
+func NewProxy(basic *url.URL, other *url.URL) *httputil.ReverseProxy {
+	return &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetXForwarded()
+			// I have searched it in Eta0, the v1 prefix algorithm shall work. Expand it if this becomes more complex.
+			if strings.HasPrefix(r.In.URL.Path, "v1") {
+				r.SetURL(basic)
+			} else {
+				r.SetURL(other)
+			}
+		},
+	}
+}
 
 func main() {
 	flag.Parse()
@@ -49,8 +71,30 @@ func main() {
 			log.Fatal(err)
 		}
 		c := service.New(client, monitor.NewClient(), repository)
-		err = http.ListenAndServe(*listenAddress, c)
-		log.Fatal(err)
+		// localhost so HTTP is acceptable
+		basic, err := url.Parse(fmt.Sprintf("http://localhost:%d", *portBasic))
+		if err != nil {
+			log.Fatal(err)
+		}
+		go func() {
+			err = http.ListenAndServe(basic.Host, c)
+			log.Fatal(err)
+		}()
+
+		other, err := url.Parse(*addrOther)
+		if err != nil {
+			log.Fatal(err)
+		}
+		p := NewProxy(basic, other)
+		if *certFile == "" && *keyFile == "" {
+			if err = http.ListenAndServe(*listenAddress, p); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			if err = http.ListenAndServeTLS(*listenAddress, *certFile, *keyFile, p); err != nil {
+				log.Fatal(err)
+			}
+		}
 		return
 	}
 
