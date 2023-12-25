@@ -6,6 +6,7 @@ import (
 	"amah/client/monitor"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -79,7 +80,7 @@ func New(
 		Exact(http.MethodPut, "/v1/dashboard/app-config/reload"),
 		reflect.TypeOf(Empty{}),
 		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
-			return nil, ret.ReloadAppConfig(ctx)
+			return ret.ReloadAppConfig(ctx)
 		})
 	ret.web = NewWeb(
 		v1PostSession,
@@ -214,12 +215,14 @@ func (s *Service) StartApplication(ctx context.Context, appID int) (ApplicationC
 	return app, nil
 }
 
-func (s *Service) ReloadAppConfig(ctx context.Context) *CodedError {
+func (s *Service) ReloadAppConfig(ctx context.Context) (*application.ReloadResult, *CodedError) {
 	if err := s.authenticate(ctx, ""); err != nil {
-		return err
+		return nil, err
 	}
-	if err := s.applicationRepository.Reload(); err != nil {
-		return NewCodedError(http.StatusServiceUnavailable, err)
+	ret, err := s.applicationRepository.Reload()
+	if err != nil {
+		return nil, NewCodedError(http.StatusServiceUnavailable, err)
 	}
-	return nil
+	fmt.Println(ret)
+	return ret, nil
 }

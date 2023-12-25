@@ -190,7 +190,9 @@ func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	fmt.Println(output)
 	outputData, err := h.Format(output)
+	fmt.Println(string(outputData))
 	if err != nil {
 		slog.Error("unexpected failure on marshal", "err", err)
 		writer.WriteHeader(http.StatusInternalServerError)

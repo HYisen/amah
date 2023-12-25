@@ -7,11 +7,13 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 type Repository struct {
 	configFilePath string
 	pd             atomic.Pointer[[]Application]
+	stat           ConfigFileStat
 }
 
 func parse(r io.Reader) ([]Application, error) {
@@ -25,7 +27,10 @@ func parse(r io.Reader) ([]Application, error) {
 
 func NewRepository(configFilePath string) (*Repository, error) {
 	ret := Repository{configFilePath: configFilePath, pd: atomic.Pointer[[]Application]{}}
-	return &ret, ret.Reload()
+	if _, err := ret.Reload(); err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }
 
 func (r *Repository) FindAll() []Application {
@@ -41,15 +46,39 @@ func (r *Repository) Find(id int) (app Application, ok bool) {
 	return Application{}, false
 }
 
-func (r *Repository) Reload() error {
+type ReloadResult struct {
+	Before ConfigFileStat
+	After  ConfigFileStat
+}
+
+type ConfigFileStat struct {
+	ModifiedTime time.Time
+	Size         int
+	ItemCount    int
+}
+
+func (r *Repository) Reload() (*ReloadResult, error) {
 	file, err := os.ReadFile(r.configFilePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	apps, err := parse(strings.NewReader(string(file)))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	r.pd.Store(&apps)
-	return nil
+
+	// As the previous read succeeded, expect no error here.
+	stat, _ := os.Stat(r.configFilePath)
+	neo := ConfigFileStat{
+		ModifiedTime: stat.ModTime(),
+		Size:         int(stat.Size()),
+		ItemCount:    len(apps),
+	}
+	ret := &ReloadResult{
+		Before: r.stat,
+		After:  neo,
+	}
+	r.stat = neo
+	return ret, nil
 }
