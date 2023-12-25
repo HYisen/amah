@@ -16,6 +16,7 @@ import (
 var scanMode = flag.Bool("scanMode", false, "enable scan mode")
 var exeSuffix = flag.String("exeSuffix", "java", "match suffix of target application executable")
 var normalMode = flag.Bool("normalMode", true, "enable normal mode that works as gateway and keeper")
+var appConfigPath = flag.String("appConfigPath", "apps.yaml", "the applications config path")
 
 var newUsername = flag.String("newUsername", "", "the new username to generate shadow line to append")
 var newPassword = flag.String("newPassword", "", "the new password to generate shadow line to append")
@@ -42,7 +43,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		repository, err := application.NewRepository()
+		repository, err := application.NewRepository(*appConfigPath)
 		if err != nil {
 			log.Fatal(err)
 		}

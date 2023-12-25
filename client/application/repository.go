@@ -4,11 +4,14 @@ import (
 	_ "embed"
 	"gopkg.in/yaml.v3"
 	"io"
+	"os"
 	"strings"
+	"sync/atomic"
 )
 
 type Repository struct {
-	data []Application
+	configFilePath string
+	pd             atomic.Pointer[[]Application]
 }
 
 func parse(r io.Reader) ([]Application, error) {
@@ -20,26 +23,33 @@ func parse(r io.Reader) ([]Application, error) {
 	return ret, nil
 }
 
-//go:embed apps.yaml
-var dummyConfigStr string
-
-func NewRepository() (*Repository, error) {
-	apps, err := parse(strings.NewReader(dummyConfigStr))
-	if err != nil {
-		return nil, err
-	}
-	return &Repository{data: apps}, nil
+func NewRepository(configFilePath string) (*Repository, error) {
+	ret := Repository{configFilePath: configFilePath, pd: atomic.Pointer[[]Application]{}}
+	return &ret, ret.Reload()
 }
 
 func (r *Repository) FindAll() []Application {
-	return r.data
+	return *r.pd.Load()
 }
 
 func (r *Repository) Find(id int) (app Application, ok bool) {
-	for _, app := range r.data {
+	for _, app := range *r.pd.Load() {
 		if app.ID == id {
 			return app, true
 		}
 	}
 	return Application{}, false
+}
+
+func (r *Repository) Reload() error {
+	file, err := os.ReadFile(r.configFilePath)
+	if err != nil {
+		return err
+	}
+	apps, err := parse(strings.NewReader(string(file)))
+	if err != nil {
+		return err
+	}
+	r.pd.Store(&apps)
+	return nil
 }
