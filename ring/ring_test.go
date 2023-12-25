@@ -14,8 +14,11 @@ func TestRingLoop(t *testing.T) {
 		neo  int
 		want []int
 	}
+	got := r.Get()
+	if len(got) != 0 {
+		t.Errorf("not empty %v", got)
+	}
 	steps := []step{
-		{"empty", false, 0, nil},
 		{"+1", true, 1, []int{1}},
 		{"stable", false, 0, []int{1}},
 		{"+2", true, 2, []int{1, 2}},
@@ -28,7 +31,7 @@ func TestRingLoop(t *testing.T) {
 		if s.add {
 			r.Add(s.neo)
 		}
-		got := r.Get()
+		got = r.Get()
 		if !reflect.DeepEqual(got, s.want) {
 			t.Errorf("on %s, want %v got %v", s.name, s.want, got)
 		}
