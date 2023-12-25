@@ -81,6 +81,16 @@ func New(
 		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.ReloadAppConfig(ctx)
 		})
+	const v1GetApplicationOutputSuffix = "/output"
+	v1GetApplicationOutput := &ClosureHandler{
+		Matcher: ResourceWithID(http.MethodGet, "/v1/applications/", v1GetApplicationOutputSuffix),
+		Parser:  PathIDParser(v1GetApplicationOutputSuffix),
+		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return ret.GetApplicationOutput(ctx, req.(int))
+		},
+		Formatter:   json.Marshal,
+		ContentType: JSONContentType,
+	}
 	ret.web = NewWeb(
 		v1PostSession,
 		v1GetProcesses,
@@ -88,6 +98,7 @@ func New(
 		v1GetApplications,
 		v1PutApplication,
 		v1PutDashboardAppConfigReload,
+		v1GetApplicationOutput,
 	)
 	return ret
 }
@@ -223,4 +234,15 @@ func (s *Service) ReloadAppConfig(ctx context.Context) (*application.ReloadResul
 		return nil, NewCodedError(http.StatusServiceUnavailable, err)
 	}
 	return ret, nil
+}
+
+func (s *Service) GetApplicationOutput(ctx context.Context, appID int) ([]string, *CodedError) {
+	if err := s.authenticate(ctx, ""); err != nil {
+		return nil, err
+	}
+	app, ok := s.appIDToClients[appID]
+	if !ok {
+		return nil, NewCodedErrorf(http.StatusNotFound, "app on not exists id %d", appID)
+	}
+	return app.Query(), nil
 }

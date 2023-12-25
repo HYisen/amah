@@ -47,3 +47,8 @@ Token: {{token}}
 
 PUT {{host}}/v1/dashboard/app-config/reload
 Token: {{token}}
+
+### GetApplicationOutput
+
+GET {{host}}/v1/applications/1002/output
+Token: {{token}}
