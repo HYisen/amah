@@ -17,6 +17,7 @@ var scanMode = flag.Bool("scanMode", false, "enable scan mode")
 var exeSuffix = flag.String("exeSuffix", "java", "match suffix of target application executable")
 var normalMode = flag.Bool("normalMode", true, "enable normal mode that works as gateway and keeper")
 var appConfigPath = flag.String("appConfigPath", "apps.yaml", "the applications config path")
+var listenAddress = flag.String("listenAddress", "0.0.0.0:8080", "where the server serve")
 
 var newUsername = flag.String("newUsername", "", "the new username to generate shadow line to append")
 var newPassword = flag.String("newPassword", "", "the new password to generate shadow line to append")
@@ -48,7 +49,7 @@ func main() {
 			log.Fatal(err)
 		}
 		c := service.New(client, monitor.NewClient(), repository)
-		err = http.ListenAndServe("0.0.0.0:8080", c)
+		err = http.ListenAndServe(*listenAddress, c)
 		log.Fatal(err)
 		return
 	}
