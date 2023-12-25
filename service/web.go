@@ -6,7 +6,6 @@ import (
 	"amah/client/monitor"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -223,6 +222,5 @@ func (s *Service) ReloadAppConfig(ctx context.Context) (*application.ReloadResul
 	if err != nil {
 		return nil, NewCodedError(http.StatusServiceUnavailable, err)
 	}
-	fmt.Println(ret)
 	return ret, nil
 }
