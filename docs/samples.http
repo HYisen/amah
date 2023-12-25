@@ -1,21 +1,11 @@
-### Login Fail
+### Login
 
 POST {{host}}/v1/session
 Content-Type: application/json
 
 {
-  "username": "this_is_username",
-  "password": "b"
-}
-
-### Login Pass
-
-POST {{host}}/v1/session
-Content-Type: application/json
-
-{
-  "username": "this_is_username",
-  "password": "this_is_password"
+  "username": "{{username}}",
+  "password": "{{password}}"
 }
 
 > {%
