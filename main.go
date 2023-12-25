@@ -5,6 +5,7 @@ import (
 	"amah/client/auth"
 	"amah/client/monitor"
 	"amah/service"
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -19,6 +21,7 @@ var scanMode = flag.Bool("scanMode", false, "enable scan mode")
 var exeSuffix = flag.String("exeSuffix", "java", "match suffix of target application executable")
 var normalMode = flag.Bool("normalMode", true, "enable normal mode that works as gateway and keeper")
 var appConfigPath = flag.String("appConfigPath", "apps.yaml", "the applications config path")
+var shadowPath = flag.String("shadowPath", "shadow", "where the shadow file exist")
 
 var listenAddress = flag.String("listenAddress", "0.0.0.0:8080", "where the server serve")
 var certFile = flag.String("certFile", "", "HTTPS cert filepath, not empty no HTTP")
@@ -57,11 +60,11 @@ func main() {
 	}
 
 	if *normalMode {
-		shadowLine, err := auth.Register("this_is_username", "this_is_password")
+		file, err := os.ReadFile(*shadowPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		accounts, _ := auth.ParseShadow(strings.NewReader(shadowLine))
+		accounts, _ := auth.ParseShadow(bytes.NewReader(file))
 		client, err := auth.NewClient(accounts)
 		if err != nil {
 			log.Fatal(err)
