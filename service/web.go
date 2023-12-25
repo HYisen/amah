@@ -75,7 +75,20 @@ func New(
 		Formatter:   json.Marshal,
 		ContentType: JSONContentType,
 	}
-	ret.web = NewWeb(v1PostSession, v1GetProcesses, v1DeleteProcess, v1GetApplications, v1PutApplication)
+	v1PutDashboardAppConfigReload := NewJSONHandler(
+		Exact(http.MethodPut, "/v1/dashboard/app-config/reload"),
+		reflect.TypeOf(Empty{}),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return nil, ret.ReloadAppConfig(ctx)
+		})
+	ret.web = NewWeb(
+		v1PostSession,
+		v1GetProcesses,
+		v1DeleteProcess,
+		v1GetApplications,
+		v1PutApplication,
+		v1PutDashboardAppConfigReload,
+	)
 	return ret
 }
 
@@ -199,4 +212,14 @@ func (s *Service) StartApplication(ctx context.Context, appID int) (ApplicationC
 		return ApplicationComplex{}, err
 	}
 	return app, nil
+}
+
+func (s *Service) ReloadAppConfig(ctx context.Context) *CodedError {
+	if err := s.authenticate(ctx, ""); err != nil {
+		return err
+	}
+	if err := s.applicationRepository.Reload(); err != nil {
+		return NewCodedError(http.StatusServiceUnavailable, err)
+	}
+	return nil
 }

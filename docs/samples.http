@@ -42,3 +42,8 @@ Token: {{token}}
 
 PUT {{host}}/v1/applications/1002/instances
 Token: {{token}}
+
+### ReloadAppConfig
+
+PUT {{host}}/v1/dashboard/app-config/reload
+Token: {{token}}
