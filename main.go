@@ -38,7 +38,7 @@ func NewProxy(basic *url.URL, other *url.URL) *httputil.ReverseProxy {
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetXForwarded()
 			// I have searched it in Eta0, the v1 prefix algorithm shall work. Expand it if this becomes more complex.
-			if strings.HasPrefix(r.In.URL.Path, "v1") {
+			if strings.HasPrefix(r.In.URL.Path, "/v1") {
 				r.SetURL(basic)
 			} else {
 				r.SetURL(other)
