@@ -1,3 +1,8 @@
+### CORS
+
+OPTIONS {{host}}/v1/what-ever-path
+
+
 ### Login
 
 POST {{host}}/v1/session

@@ -126,11 +126,12 @@ func (ch *ClosureHandler) ResponseContentType() string {
 // The best performance strategy could be a code generator, which is complicated to implements.
 // Or just put the dirty transform work together as it was, which causes a lot of redundancy.
 type Web struct {
-	handlers []Handler
+	handlers  []Handler
+	allowCORS bool
 }
 
-func NewWeb(handlers ...Handler) *Web {
-	return &Web{handlers: handlers}
+func NewWeb(allowCORS bool, handlers ...Handler) *Web {
+	return &Web{handlers: handlers, allowCORS: allowCORS}
 }
 
 var serverContextCreator = func() (ctx context.Context, cancel context.CancelFunc) {
@@ -149,8 +150,23 @@ func (w *Web) findHandler(req *http.Request) Handler {
 	return nil
 }
 
+var allowedMethods = strings.Join([]string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete}, ",")
+var allowedHeaders = strings.Join([]string{"Content-Type", "Token"}, ",")
+
 // ServeHTTP implements that in interface.
 func (w *Web) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if w.allowCORS {
+		writer.Header().Set("Access-Control-Allow-Origin", request.Header.Get("Origin"))
+		if request.Method == http.MethodOptions {
+			slog.Warn("allow cors", "req", request)
+			writer.Header().Set("Access-Control-Allow-Methods", allowedMethods)
+			writer.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+			writer.Header().Set("Access-Control-Max-Age", "3600") // I just love the 1hr duration.
+			writer.WriteHeader(http.StatusAccepted)
+			return
+		}
+	}
+
 	h := w.findHandler(request)
 	if h == nil {
 		writer.WriteHeader(http.StatusNotAcceptable)

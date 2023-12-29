@@ -92,6 +92,7 @@ func New(
 		ContentType: JSONContentType,
 	}
 	ret.web = NewWeb(
+		true,
 		v1PostSession,
 		v1GetProcesses,
 		v1DeleteProcess,
