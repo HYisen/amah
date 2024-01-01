@@ -35,7 +35,7 @@ Token: {{token}}
 
 ### StartApplication
 
-PUT {{host}}/v1/applications/1002/instances
+PUT {{host}}/v1/applications/{{appid}}/instances
 Token: {{token}}
 
 ### ReloadAppConfig
@@ -45,5 +45,5 @@ Token: {{token}}
 
 ### GetApplicationOutput
 
-GET {{host}}/v1/applications/1002/output
+GET {{host}}/v1/applications/{{appid}}/output
 Token: {{token}}
