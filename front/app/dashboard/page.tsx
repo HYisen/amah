@@ -1,38 +1,38 @@
+// noinspection DuplicatedCode
+// I would implement it first, then extract the same things in config page properly.
+// The core question is how shall I store the common worker info of username & password.
 "use client";
 
 import {useState} from "react";
 import {Button, TextField} from "@mui/material";
-import {Process, Token} from "@/app/lib/definitions";
+import {ApplicationComplex, ApplicationLine, digestApplications, Token} from "@/app/lib/definitions";
 import {DataGrid, GridColDef} from "@mui/x-data-grid";
-import {basicColumn, enrichWithID} from "@/app/lib/utils";
 import {humanize} from "@/app/lib/humanize";
 
 const columns: GridColDef[] = [
-    basicColumn("PID"),
-    basicColumn("PPID"),
+    {field: "pid", headerName: "PID"},
+    {field: "ppid", headerName: "PPID"},
     {
-        field: "RSS",
-        headerName: "RSS",
+        field: "memory",
+        headerName: "Memory",
         valueFormatter: params => {
             return humanize(params.value);
         }
     },
-    {
-        field: "PSS",
-        headerName: "PSS",
-        valueFormatter: params => {
-            return humanize(params.value);
-        }
-    },
-    basicColumn("Path", 300),
-    basicColumn("Args", 600)
+    {field: "processes", headerName: "Processes"},
+
+    {field: "appId", headerName: "AppID"},
+    {field: "appName", headerName: "AppName"},
+    {field: "workingDirectory", headerName: "PWD", width: 225}, // ENV $PWD
+    {field: "args", headerName: "args", width: 450},
+    {field: "redirectPath", headerName: ">", width: 225}
 ];
 
 export default function Page() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [token, setToken] = useState({} as Token);
-    const [processes, setProcesses] = useState<Process[]>([]);
+    const [applications, setApplications] = useState<ApplicationLine[]>([]);
 
     const host = "https://hyisen.net"
 
@@ -51,10 +51,10 @@ export default function Page() {
     }
 
     async function fetchData() {
-        const response = await fetch(`${host}/v1/processes`, {headers: {"Token": token.ID}});
+        const response = await fetch(`${host}/v1/applications`, {headers: {"Token": token.ID}});
         if (response.ok) {
-            let items: Process[] = await response.json();
-            setProcesses(enrichWithID(items.filter(v => v.PSS !== 0)));
+            let items: ApplicationComplex[] = await response.json();
+            setApplications(digestApplications(items));
         }
     }
 
@@ -74,7 +74,7 @@ export default function Page() {
                        value={password}
                        onChange={event => setPassword(event.target.value)}></TextField>
             <br/>
-            <DataGrid columns={columns} rows={processes}/>
+            <DataGrid columns={columns} rows={applications}/>
         </>
     );
 }
