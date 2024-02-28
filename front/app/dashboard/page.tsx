@@ -6,10 +6,32 @@
 import {useState} from "react";
 import {Button, TextField} from "@mui/material";
 import {ApplicationComplex, ApplicationLine, digestApplications, Token} from "@/app/lib/definitions";
-import {DataGrid, GridColDef} from "@mui/x-data-grid";
+import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {humanize} from "@/app/lib/humanize";
 
+
 const columns: GridColDef[] = [
+    {
+        field: "stoppable",
+        headerName: "Action",
+        width: 100,
+        valueGetter: (params): boolean => {
+            return params.row.memory > 0 && params.row.pid > 0;
+        },
+        renderCell: (params: GridRenderCellParams<any, boolean>) => {
+            return params.value ?
+                <Button size="small" variant="contained" color="error"
+                        onClick={() => {
+                            alert("BOOM");
+                        }}>Kill</Button>
+                :
+                <Button size="small" variant="contained" color="success"
+                        onClick={() => {
+                            alert("BOOM");
+                        }}>Run</Button>
+                ;
+        },
+    },
     {field: "pid", headerName: "PID"},
     {field: "ppid", headerName: "PPID"},
     {
