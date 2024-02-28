@@ -9,8 +9,7 @@ import {ApplicationComplex, ApplicationLine, digestApplications, Token} from "@/
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {humanize} from "@/app/lib/humanize";
 
-
-const columns: GridColDef[] = [
+const columns = (runFunc: (appId: number) => void, killFunc: (pid: number) => void): GridColDef[] => [
     {
         field: "stoppable",
         headerName: "Action",
@@ -18,16 +17,16 @@ const columns: GridColDef[] = [
         valueGetter: (params): boolean => {
             return params.row.memory > 0 && params.row.pid > 0;
         },
-        renderCell: (params: GridRenderCellParams<any, boolean>) => {
+        renderCell: (params: GridRenderCellParams<ApplicationLine, boolean>) => {
             return params.value ?
                 <Button size="small" variant="contained" color="error"
                         onClick={() => {
-                            alert("BOOM");
+                            killFunc(params.row.pid);
                         }}>Kill</Button>
                 :
                 <Button size="small" variant="contained" color="success"
                         onClick={() => {
-                            alert("BOOM");
+                            runFunc(params.row.appId);
                         }}>Run</Button>
                 ;
         },
@@ -80,6 +79,22 @@ export default function Page() {
         }
     }
 
+    async function runApplication(appId: number) {
+        const response = await fetch(`${host}/v1/applications/${appId}/instances`,
+            {method: "PUT", headers: {"Token": token.ID}});
+        if (!response.ok) {
+            alert(`bad code ${response.status}: ${await response.text()}`);
+        }
+    }
+
+    async function killProcess(pid: number) {
+        const response = await fetch(`${host}/v1/processes/${pid}`,
+            {method: "DELETE", headers: {"Token": token.ID}});
+        if (!response.ok) {
+            alert(`bad code ${response.status}: ${await response.text()}`);
+        }
+    }
+
     return (
         <>
             <Button variant="contained" onClick={() => {
@@ -96,7 +111,11 @@ export default function Page() {
                        value={password}
                        onChange={event => setPassword(event.target.value)}></TextField>
             <br/>
-            <DataGrid columns={columns} rows={applications}/>
+            <DataGrid columns={columns(appId => {
+                runApplication(appId).then();
+            }, pid => {
+                killProcess(pid).then();
+            })} rows={applications}/>
         </>
     );
 }
