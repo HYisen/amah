@@ -1,6 +1,8 @@
 module amah
 
-go 1.21
+go 1.24
+
+toolchain go1.24.1
 
 require (
 	github.com/dustin/go-humanize v1.0.1
@@ -11,5 +13,6 @@ require (
 )
 
 require (
+	github.com/hyisen/wf v1.0.1 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 )
