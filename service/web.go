@@ -50,15 +50,15 @@ func New(
 			return ret.GetProcesses(ctx)
 		},
 	)
-	v1DeleteProcess := &ClosureHandler{
-		Matcher: ResourceWithID(http.MethodDelete, "/v1/processes/", ""),
-		Parser:  PathIDParser(""),
-		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+	v1DeleteProcess := NewClosureHandler(
+		ResourceWithID(http.MethodDelete, "/v1/processes/", ""),
+		PathIDParser(""),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return nil, ret.DeleteProcess(ctx, req.(int))
 		},
-		Formatter:   FormatEmpty,
-		ContentType: http.DetectContentType(nil),
-	}
+		FormatEmpty,
+		http.DetectContentType(nil),
+	)
 	v1GetApplications := NewJSONHandler(
 		Exact(http.MethodGet, "/v1/applications"),
 		reflect.TypeOf(Empty{}),
@@ -67,15 +67,15 @@ func New(
 		},
 	)
 	const v1PutApplicationPathSuffix = "/instances"
-	v1PutApplication := &ClosureHandler{
-		Matcher: ResourceWithID(http.MethodPut, "/v1/applications/", v1PutApplicationPathSuffix),
-		Parser:  PathIDParser(v1PutApplicationPathSuffix),
-		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+	v1PutApplication := NewClosureHandler(
+		ResourceWithID(http.MethodPut, "/v1/applications/", v1PutApplicationPathSuffix),
+		PathIDParser(v1PutApplicationPathSuffix),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.StartApplication(ctx, req.(int))
 		},
-		Formatter:   json.Marshal,
-		ContentType: JSONContentType,
-	}
+		json.Marshal,
+		JSONContentType,
+	)
 	v1PutDashboardAppConfigReload := NewJSONHandler(
 		Exact(http.MethodPut, "/v1/dashboard/app-config/reload"),
 		reflect.TypeOf(Empty{}),
@@ -83,15 +83,15 @@ func New(
 			return ret.ReloadAppConfig(ctx)
 		})
 	const v1GetApplicationOutputSuffix = "/output"
-	v1GetApplicationOutput := &ClosureHandler{
-		Matcher: ResourceWithID(http.MethodGet, "/v1/applications/", v1GetApplicationOutputSuffix),
-		Parser:  PathIDParser(v1GetApplicationOutputSuffix),
-		Handler: func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+	v1GetApplicationOutput := NewClosureHandler(
+		ResourceWithID(http.MethodGet, "/v1/applications/", v1GetApplicationOutputSuffix),
+		PathIDParser(v1GetApplicationOutputSuffix),
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.GetApplicationOutput(ctx, req.(int))
 		},
-		Formatter:   json.Marshal,
-		ContentType: JSONContentType,
-	}
+		json.Marshal,
+		JSONContentType,
+	)
 	ret.web = NewWeb(
 		true,
 		v1PostSession,
