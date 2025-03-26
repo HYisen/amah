@@ -1,0 +1,7 @@
+servers:
+  - name: control-plane
+    url: http://localhost:8600
+  - name: aiagent
+    url: http://localhost:8640
+  - name: fallback
+    url: http://localhost:8400

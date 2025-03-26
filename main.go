@@ -28,7 +28,6 @@ var certFile = flag.String("certFile", "", "HTTPS cert filepath, not empty no HT
 var keyFile = flag.String("keyFile", "", "HTTPS key filepath, not empty no HTTP")
 
 var portBasic = flag.Int("portBasic", 8600, "where the control plane serve on localhost")
-var addrOther = flag.String("addrOther", "https://localhost:8443", "where the fallback serve")
 
 var newUsername = flag.String("newUsername", "", "the new username to generate shadow line to append")
 var newPassword = flag.String("newPassword", "", "the new password to generate shadow line to append")
@@ -70,11 +69,14 @@ func main() {
 			log.Fatal(err)
 		}()
 
-		other, err := url.Parse(*addrOther)
 		if err != nil {
 			log.Fatal(err)
 		}
-		p := proxy.New(basic, other)
+		cfg, err := proxy.NewConfig("router.yaml")
+		if err != nil {
+			log.Fatal(err)
+		}
+		p := proxy.New(cfg)
 		log.Printf("listen on %s\n", *listenAddress)
 		if *certFile == "" && *keyFile == "" {
 			if err = http.ListenAndServe(*listenAddress, p); err != nil {
