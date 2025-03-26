@@ -4,6 +4,7 @@ import (
 	"amah/client/application"
 	"amah/client/auth"
 	"amah/client/monitor"
+	"amah/proxy"
 	"amah/service"
 	"bytes"
 	"flag"
@@ -11,7 +12,6 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
@@ -32,29 +32,6 @@ var addrOther = flag.String("addrOther", "https://localhost:8443", "where the fa
 
 var newUsername = flag.String("newUsername", "", "the new username to generate shadow line to append")
 var newPassword = flag.String("newPassword", "", "the new password to generate shadow line to append")
-
-func NewProxy(basic *url.URL, other *url.URL) *httputil.ReverseProxy {
-	aiagent, err := url.Parse("http://localhost:8640")
-	if err != nil {
-		log.Fatal(err)
-	}
-	aiPrefix := "/ai"
-	return &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetXForwarded()
-			// I have searched it in Eta0, the v1 prefix algorithm shall work. Expand it if this becomes more complex.
-			if strings.HasPrefix(r.In.URL.Path, "/v1") {
-				r.SetURL(basic)
-			} else if strings.HasPrefix(r.In.URL.Path, aiPrefix) {
-				r.Out.URL.Path = strings.TrimPrefix(r.Out.URL.Path, aiPrefix)
-				r.Out.URL.RawPath = strings.TrimPrefix(r.Out.URL.RawPath, aiPrefix)
-				r.SetURL(aiagent)
-			} else {
-				r.SetURL(other)
-			}
-		},
-	}
-}
 
 func main() {
 	flag.Parse()
@@ -97,7 +74,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		p := NewProxy(basic, other)
+		p := proxy.New(basic, other)
 		log.Printf("listen on %s\n", *listenAddress)
 		if *certFile == "" && *keyFile == "" {
 			if err = http.ListenAndServe(*listenAddress, p); err != nil {
