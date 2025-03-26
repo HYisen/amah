@@ -6,6 +6,7 @@ import (
 	"amah/client/monitor"
 	"context"
 	"encoding/json"
+	"errors"
 	. "github.com/hyisen/wf"
 	"log/slog"
 	"net/http"
@@ -92,6 +93,15 @@ func New(
 		json.Marshal,
 		JSONContentType,
 	)
+	v0Forbidden := NewClosureHandler(
+		Exact(http.MethodGet, "/v0/forbidden"),
+		ParseEmpty,
+		func(_ context.Context, _ any) (_ any, codedError *CodedError) {
+			return nil, NewCodedError(http.StatusForbidden, errors.New("no privilege to access this"))
+		},
+		FormatEmpty,
+		JSONContentType,
+	)
 	ret.web = NewWeb(
 		true,
 		v1PostSession,
@@ -101,6 +111,7 @@ func New(
 		v1PutApplication,
 		v1PutDashboardAppConfigReload,
 		v1GetApplicationOutput,
+		v0Forbidden,
 	)
 	return ret
 }
