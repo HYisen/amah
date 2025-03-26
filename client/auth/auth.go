@@ -45,6 +45,7 @@ func newAccount(shadowLine string) (Account, error) {
 type Client struct {
 	usernameToEncryptedPassword map[string]string
 	tokenIDToToken              map[string]Token
+	usernameToUserID            map[string]int
 }
 
 func LoadAccounts(shadowFilePath string) ([]Account, error) {
@@ -64,9 +65,14 @@ func NewClient(accounts []Account) (*Client, error) {
 	for _, account := range accounts {
 		usernameToEncryptedPassword[account.Username] = account.EncryptedPassword
 	}
+	usernameToUserID := make(map[string]int)
+	for _, account := range accounts {
+		usernameToUserID[account.Username] = account.UserID
+	}
 	return &Client{
 		usernameToEncryptedPassword: usernameToEncryptedPassword,
 		tokenIDToToken:              make(map[string]Token),
+		usernameToUserID:            usernameToUserID,
 	}, nil
 }
 
@@ -127,6 +133,11 @@ func (c *Client) FindValidToken(id string) (t Token, ok bool) {
 		return Token{}, false
 	}
 	return token, true
+}
+
+func (c *Client) FindUserIDByUsername(username string) (userID int, ok bool) {
+	uid, found := c.usernameToUserID[username]
+	return uid, found
 }
 
 func Register(username, password string) (shadowLine string, err error) {
