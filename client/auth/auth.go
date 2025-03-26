@@ -9,11 +9,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type Account struct {
+	UserID            int
 	Username          string
 	EncryptedPassword string
 }
@@ -26,10 +28,15 @@ type Token struct {
 
 func newAccount(shadowLine string) (Account, error) {
 	parts := strings.Split(shadowLine, ":")
-	if len(parts) < 2 {
+	if len(parts) < 3 {
 		return Account{}, fmt.Errorf("bad shardow line %s", shadowLine)
 	}
+	uid, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return Account{}, fmt.Errorf("bad shardow user id field %s: %v", parts[2], err)
+	}
 	return Account{
+		UserID:            uid,
 		Username:          parts[0],
 		EncryptedPassword: parts[1],
 	}, nil
@@ -127,5 +134,5 @@ func Register(username, password string) (shadowLine string, err error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s:%s", username, encryptedPassword), nil
+	return fmt.Sprintf("%s:%s:1000", username, encryptedPassword), nil
 }
