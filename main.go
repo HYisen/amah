@@ -76,7 +76,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		p := proxy.New(cfg)
+		p := proxy.New(cfg, client)
 		log.Printf("listen on %s\n", *listenAddress)
 		if *certFile == "" && *keyFile == "" {
 			if err = http.ListenAndServe(*listenAddress, p); err != nil {

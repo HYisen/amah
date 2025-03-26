@@ -1,11 +1,14 @@
 package proxy
 
 import (
+	"amah/client/auth"
+	"net/http"
 	"net/http/httputil"
+	"strconv"
 	"strings"
 )
 
-func New(cfg *Config) *httputil.ReverseProxy {
+func New(cfg *Config, authClient *auth.Client) *httputil.ReverseProxy {
 	aiPrefix := "/ai"
 	return &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
@@ -17,9 +20,36 @@ func New(cfg *Config) *httputil.ReverseProxy {
 				r.Out.URL.Path = strings.TrimPrefix(r.Out.URL.Path, aiPrefix)
 				r.Out.URL.RawPath = strings.TrimPrefix(r.Out.URL.RawPath, aiPrefix)
 				r.SetURL(cfg.AIAgentURL)
+
+				if !authenticate(r.Out.URL.Path, r.In.Header.Get("token"), authClient) {
+					r.SetURL(cfg.ControlPlaneURL)
+					r.Out.Method = http.MethodGet
+					r.Out.URL.Path = "/v0/forbidden"
+				}
 			} else {
 				r.SetURL(cfg.FallbackURL)
 			}
 		},
 	}
+}
+
+func authenticate(path string, token string, authClient *auth.Client) bool {
+	rest, ok := strings.CutPrefix(path, "/v2/users/")
+	if !ok {
+		return false
+	}
+	head, _, _ := strings.Cut(rest, "/")
+	uid, err := strconv.Atoi(head)
+	if err != nil {
+		return false
+	}
+	t, ok := authClient.FindValidToken(token)
+	if !ok {
+		return false
+	}
+	userID, ok := authClient.FindUserIDByUsername(t.Username)
+	if !ok {
+		return false
+	}
+	return userID == uid
 }
