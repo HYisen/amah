@@ -24,6 +24,7 @@ type Token struct {
 	ID       string
 	ExpireAt time.Time
 	Username string
+	UserID   int
 }
 
 func newAccount(shadowLine string) (Account, error) {
@@ -113,11 +114,12 @@ func expireAt(now time.Time) time.Time {
 	return now.Add(10 * time.Minute)
 }
 
-func (c *Client) CreateToken(Username string) Token {
+func (c *Client) CreateToken(username string) Token {
 	ret := Token{
 		ID:       uuid.NewString(),
 		ExpireAt: expireAt(time.Now()),
-		Username: Username,
+		Username: username,
+		UserID:   c.usernameToUserID[username],
 	}
 	c.tokenIDToToken[ret.ID] = ret
 	return ret
