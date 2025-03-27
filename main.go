@@ -6,14 +6,12 @@ import (
 	"amah/client/monitor"
 	"amah/proxy"
 	"amah/service"
-	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -45,11 +43,8 @@ func main() {
 	}
 
 	if *normalMode {
-		file, err := os.ReadFile(*shadowPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		accounts, _ := auth.ParseShadow(bytes.NewReader(file))
+		accounts, _ := auth.LoadAccounts(*shadowPath)
+		// Ignore err, init an empty accounts if no shadow file
 		client, err := auth.NewClient(accounts)
 		if err != nil {
 			log.Fatal(err)
