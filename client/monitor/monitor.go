@@ -32,12 +32,12 @@ func (c *Client) Scan() ([]Process, error) {
 	return ret, err
 }
 
-// Kill kills the process by PID, if no such PID, would return false found and nil err.
-func (c *Client) Kill(PID int) (found bool, err error) {
+// Kill kills the process by pid, if no such PID, would return false found and nil err.
+func (c *Client) Kill(pid int) (found bool, err error) {
 	// > On Unix systems, FindProcess always succeeds and returns a Process for the given pid,
 	// At present I only test and guarantee user experience on Unix systems,
 	// so we treat it as it is Unix and follow the guide in docs of os.FindProcess.
-	process, _ := os.FindProcess(PID)
+	process, _ := os.FindProcess(pid)
 	if process.Signal(syscall.Signal(0)) != nil {
 		return false, nil
 	}
