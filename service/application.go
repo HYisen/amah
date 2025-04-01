@@ -26,11 +26,9 @@ func CombineTheoryAndReality(applications []application.Application, processes [
 	}
 
 	appIDToRoots := combine(applications, processes)
-	// Some day maybe go 1.22 there would be maps.Values likes that in exp.
-	// ref https://pkg.go.dev/golang.org/x/exp/maps#Values
-	// ref https://github.com/golang/go/issues/61538
-	// But fulfillChildrenRecursively on any batch design are of same complexity,
-	// so here just launch a keys ranged for and fill them group by group, rather than merge and do them all.
+	// Yes, there is a one line alternative as
+	// fulfillChildrenRecursively(slices.Concat(slices.Collect(maps.Values(appIDToRoots))...), ppidToProcesses)
+	// I just don't find it more readable or have any performance advantages.
 	for _, roots := range appIDToRoots {
 		fulfillChildrenRecursively(roots, ppidToProcesses)
 	}
