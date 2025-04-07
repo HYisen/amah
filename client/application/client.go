@@ -61,6 +61,14 @@ func (c *Client) tee(ctx context.Context, ch <-chan string, wc io.WriteCloser) {
 	}
 }
 
+// PID returns that of the running process. Returns zero if it has stopped properly. ref Terminate
+func (c *Client) PID() int {
+	if c.process == nil {
+		return 0
+	}
+	return c.process.Pid
+}
+
 func (c *Client) start(a Application) error {
 	if c.cancel != nil {
 		return fmt.Errorf("unhandled cancel")
