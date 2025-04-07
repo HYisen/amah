@@ -13,10 +13,11 @@ import (
 )
 
 type Client struct {
-	appID  int
-	buf    ring.Ring[string]
-	query  chan chan []string
-	cancel context.CancelFunc
+	appID   int
+	buf     ring.Ring[string]
+	query   chan chan []string
+	cancel  context.CancelFunc
+	process *os.Process
 }
 
 func NewClient(app Application, outputHistoryLength int) (*Client, error) {
@@ -65,6 +66,8 @@ func (c *Client) start(a Application) error {
 		return fmt.Errorf("unhandled cancel")
 	}
 
+	// Using CommandContext and cancel the ctx is identical in underlying,
+	// comparing to Process.Kill. Since I also need PID, the latter is chosen.
 	cmd := exec.Command(a.Exec.Path, a.Exec.Args...)
 	cmd.Dir = a.Exec.WorkingDirectory
 
@@ -80,6 +83,7 @@ func (c *Client) start(a Application) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	c.process = cmd.Process
 
 	ch := make(chan string)
 
@@ -116,10 +120,20 @@ func (c *Client) Query() []string {
 	return <-ch
 }
 
-// Terminate stops the running of helper, which little relevant to the started app.
-// It means the tee mechanism stops pipe output to RedirectPath and the Query is no longer available.
-func (c *Client) Terminate() {
+// Terminate kills the process, and then stop its helper.
+// Terminate for multiple times will cause NPE, and panics as close a channel for more than one time.
+// I design such kind of dangerous behaviour to prevent defensive calls of Terminate.
+func (c *Client) Terminate() error {
+	if err := c.process.Kill(); err != nil {
+		return err
+	}
+	if _, err := c.process.Wait(); err != nil {
+		return err
+	}
+
+	c.process = nil
 	c.cancel()
 	c.cancel = nil
 	close(c.query)
+	return nil
 }
