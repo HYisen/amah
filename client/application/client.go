@@ -120,12 +120,18 @@ func (c *Client) start(a Application) error {
 }
 
 func (c *Client) Query() []string {
-	if c.cancel == nil {
-		return nil
+	if c.stopped() {
+		// Once c.stopped(), c.buf becomes always safe to read only.
+		return c.buf.Get()
 	}
 	ch := make(chan []string)
 	c.query <- ch
 	return <-ch
+}
+
+func (c *Client) stopped() bool {
+	// Because it's the final set in Terminate procedure.
+	return c.cancel == nil
 }
 
 // Terminate kills the process, and then stop its helper.
@@ -134,7 +140,7 @@ func (c *Client) Terminate() error {
 	// Why not TryLock? Because I don't want a raced one returns success earlier than the first one is done.
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.cancel == nil { // Because it's final set in this function.
+	if c.stopped() {
 		return nil
 	}
 
