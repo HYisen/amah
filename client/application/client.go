@@ -4,7 +4,6 @@ import (
 	"amah/ring"
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"log/slog"
@@ -69,11 +68,8 @@ func (c *Client) PID() int {
 	return c.process.Pid
 }
 
+// start starts an app. One shall not execute start for multiple times.
 func (c *Client) start(a Application) error {
-	if c.cancel != nil {
-		return fmt.Errorf("unhandled cancel")
-	}
-
 	// Using CommandContext and cancel the ctx is identical in underlying,
 	// comparing to Process.Kill. Since I also need PID, the latter is chosen.
 	cmd := exec.Command(a.Exec.Path, a.Exec.Args...)
