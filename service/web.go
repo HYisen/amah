@@ -19,7 +19,7 @@ type Service struct {
 	authClient            *auth.Client
 	monitorClient         *monitor.Client
 	applicationRepository *application.Repository
-	appIDToClients        map[int]*application.Client
+	appIDToClient         map[int]*application.Client
 	mu                    sync.Mutex // guard actions likes exec with scan that shall escape race condition
 	web                   *Web
 }
@@ -33,7 +33,7 @@ func New(
 		authClient:            authClient,
 		monitorClient:         monitorClient,
 		applicationRepository: applicationRepository,
-		appIDToClients:        make(map[int]*application.Client),
+		appIDToClient:         make(map[int]*application.Client),
 		mu:                    sync.Mutex{},
 		web:                   nil,
 	}
@@ -165,9 +165,29 @@ func (s *Service) GetProcesses(ctx context.Context) ([]monitor.Process, *CodedEr
 	return processes, nil
 }
 
+func (s *Service) findClientByPIDOptional(pid int) (optional *application.Client) {
+	// Normal process has a natural number PID.
+	if pid <= 0 {
+		return nil
+	}
+	for _, client := range s.appIDToClient {
+		if client.PID() == pid {
+			return client
+		}
+	}
+	return nil
+}
+
 func (s *Service) DeleteProcess(ctx context.Context, pid int) *CodedError {
 	if err := s.authenticate(ctx, "DeleteProcess"); err != nil {
 		return err
+	}
+
+	if client := s.findClientByPIDOptional(pid); client != nil {
+		if err := client.Terminate(); err != nil {
+			return NewCodedError(http.StatusInternalServerError, err)
+		}
+		return nil
 	}
 
 	found, err := s.monitorClient.Kill(pid)
@@ -229,7 +249,7 @@ func (s *Service) StartApplication(ctx context.Context, appID int) (ApplicationC
 	if e != nil {
 		return ApplicationComplex{}, NewCodedError(http.StatusServiceUnavailable, e)
 	}
-	s.appIDToClients[appID] = client
+	s.appIDToClient[appID] = client
 
 	app, err = s.findApplicationComplex(appID)
 	if err != nil {
@@ -253,7 +273,7 @@ func (s *Service) GetApplicationOutput(ctx context.Context, appID int) ([]string
 	if err := s.authenticate(ctx, ""); err != nil {
 		return nil, err
 	}
-	app, ok := s.appIDToClients[appID]
+	app, ok := s.appIDToClient[appID]
 	if !ok {
 		return nil, NewCodedErrorf(http.StatusNotFound, "app on not exists id %d", appID)
 	}
