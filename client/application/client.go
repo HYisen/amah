@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"sync"
 )
 
 type Client struct {
@@ -17,14 +18,17 @@ type Client struct {
 	query   chan chan []string
 	cancel  context.CancelFunc
 	process *os.Process
+	mu      *sync.Mutex // guard Terminate
 }
 
 func NewClient(app Application, outputHistoryLength int) (*Client, error) {
 	ret := &Client{
-		appID:  app.ID,
-		buf:    ring.New[string](outputHistoryLength),
-		query:  make(chan chan []string),
-		cancel: nil,
+		appID:   app.ID,
+		buf:     ring.New[string](outputHistoryLength),
+		query:   make(chan chan []string),
+		cancel:  nil,
+		process: nil,
+		mu:      &sync.Mutex{},
 	}
 	return ret, ret.start(app)
 }
@@ -125,9 +129,16 @@ func (c *Client) Query() []string {
 }
 
 // Terminate kills the process, and then stop its helper.
-// Terminate for multiple times will cause NPE, and panics as close a channel for more than one time.
-// I design such kind of dangerous behaviour to prevent defensive calls of Terminate.
+// It's thread safe and okay to be invoked for multiple times.
 func (c *Client) Terminate() error {
+	// Why not TryLock? Because I don't want a raced one returns success earlier than the first one is done.
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cancel == nil { // Because it's final set in this function.
+		return nil
+	}
+
+	// As long as c.cancel not nil, the c.process can not be nil.
 	if err := c.process.Kill(); err != nil {
 		return err
 	}
