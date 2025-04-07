@@ -77,6 +77,19 @@ func New(
 		json.Marshal,
 		JSONContentType,
 	)
+	v1DeleteApplicationInstanceMatcher, v1DeleteApplicationInstanceParser := ResourceWithIDs(
+		http.MethodDelete,
+		[]string{"v1", "applications", "", "instances"},
+	)
+	v1DeleteApplicationInstance := NewClosureHandler(
+		v1DeleteApplicationInstanceMatcher,
+		v1DeleteApplicationInstanceParser,
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return nil, ret.KillApplication(ctx, req.([]int)[0])
+		},
+		FormatEmpty,
+		http.DetectContentType(nil),
+	)
 	v1PutDashboardAppConfigReload := NewJSONHandler(
 		Exact(http.MethodPut, "/v1/dashboard/app-config/reload"),
 		reflect.TypeOf(Empty{}),
@@ -109,6 +122,7 @@ func New(
 		v1DeleteProcess,
 		v1GetApplications,
 		v1PutApplication,
+		v1DeleteApplicationInstance,
 		v1PutDashboardAppConfigReload,
 		v1GetApplicationOutput,
 		v0Forbidden,
@@ -256,6 +270,17 @@ func (s *Service) StartApplication(ctx context.Context, appID int) (ApplicationC
 		return ApplicationComplex{}, err
 	}
 	return app, nil
+}
+
+func (s *Service) KillApplication(ctx context.Context, appID int) *CodedError {
+	if err := s.authenticate(ctx, "KillApplication "+strconv.Itoa(appID)); err != nil {
+		return err
+	}
+
+	if err := s.appIDToClient[appID].Terminate(); err != nil {
+		return NewCodedErrorf(http.StatusServiceUnavailable, "failed to kill app %d: %v", appID, err)
+	}
+	return nil
 }
 
 func (s *Service) ReloadAppConfig(ctx context.Context) (*application.ReloadResult, *CodedError) {

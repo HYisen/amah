@@ -25,7 +25,7 @@ Token: {{token}}
 ### DeleteProcess (a.k.a kill by PID)
 
 # Find the proper UID through launch one and GetProcesses or ps.
-DELETE {{host}}/v1/processes/186451
+DELETE {{host}}/v1/processes/31373
 Token: {{token}}
 
 ### GetApplications
@@ -36,6 +36,11 @@ Token: {{token}}
 ### StartApplication
 
 PUT {{host}}/v1/applications/{{appid}}/instances
+Token: {{token}}
+
+### v1DeleteApplicationInstance
+
+DELETE {{host}}/v1/applications/{{appid}}/instances
 Token: {{token}}
 
 ### ReloadAppConfig
