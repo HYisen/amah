@@ -277,7 +277,12 @@ func (s *Service) KillApplication(ctx context.Context, appID int) *CodedError {
 		return err
 	}
 
-	if err := s.appIDToClient[appID].Terminate(); err != nil {
+	client, ok := s.appIDToClient[appID]
+	if !ok {
+		return NewCodedErrorf(http.StatusNotFound, "no app on id %d to kill", appID)
+	}
+
+	if err := client.Terminate(); err != nil {
 		return NewCodedErrorf(http.StatusServiceUnavailable, "failed to kill app %d: %v", appID, err)
 	}
 	return nil
