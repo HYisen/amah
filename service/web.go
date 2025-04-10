@@ -3,16 +3,19 @@ package service
 import (
 	"amah/client/application"
 	"amah/client/auth"
+	"amah/client/github"
 	"amah/client/monitor"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	. "github.com/hyisen/wf"
 	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Service struct {
@@ -67,10 +70,10 @@ func New(
 			return ret.GetApplications(ctx)
 		},
 	)
-	const v1PutApplicationPathSuffix = "/instances"
-	v1PutApplication := NewClosureHandler(
-		ResourceWithID(http.MethodPut, "/v1/applications/", v1PutApplicationPathSuffix),
-		PathIDParser(v1PutApplicationPathSuffix),
+	const v1PutApplicationInstancePathSuffix = "/instances"
+	v1PutApplicationInstance := NewClosureHandler(
+		ResourceWithID(http.MethodPut, "/v1/applications/", v1PutApplicationInstancePathSuffix),
+		PathIDParser(v1PutApplicationInstancePathSuffix),
 		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
 			return ret.StartApplication(ctx, req.(int))
 		},
@@ -90,6 +93,38 @@ func New(
 		FormatEmpty,
 		http.DetectContentType(nil),
 	)
+	v1PutApplicationMatcher, v1PutApplicationPathParser := ResourceWithIDs(
+		http.MethodPut,
+		[]string{"v1", "applications", ""},
+	)
+	v1PutApplication := NewClosureHandler(
+		v1PutApplicationMatcher,
+		func(data []byte, path string) (req any, err error) {
+			ids, err := v1PutApplicationPathParser(nil, path)
+			if err != nil {
+				return nil, fmt.Errorf("can not find id in path %s: %v", path, err)
+			}
+			appID := ids.([]int)[0]
+
+			var body github.DownloadArtifactRequest
+			if err := json.Unmarshal(data, &body); err != nil {
+				return nil, fmt.Errorf("can not parse body %s: %v", string(data), err)
+			}
+
+			return &DeployApplicationRequest{
+				AppID:                   appID,
+				DownloadArtifactRequest: body,
+			}, nil
+		},
+		func(ctx context.Context, req any) (rsp any, codedError *CodedError) {
+			return nil, ret.DeployApplication(ctx, req.(*DeployApplicationRequest))
+		},
+		FormatEmpty,
+		http.DetectContentType(nil),
+	)
+	// Shall be long enough for a typical 10 MiB zipped tarball to deploy.
+	// It takes 5s in my first attempt. But on server I met a timeout on 10s.
+	v1PutApplication.Timeout = 60 * time.Second
 	v1PutDashboardAppConfigReload := NewJSONHandler(
 		Exact(http.MethodPut, "/v1/dashboard/app-config/reload"),
 		reflect.TypeOf(Empty{}),
@@ -121,8 +156,9 @@ func New(
 		v1GetProcesses,
 		v1DeleteProcess,
 		v1GetApplications,
-		v1PutApplication,
+		v1PutApplicationInstance,
 		v1DeleteApplicationInstance,
+		v1PutApplication,
 		v1PutDashboardAppConfigReload,
 		v1GetApplicationOutput,
 		v0Forbidden,
@@ -284,6 +320,39 @@ func (s *Service) KillApplication(ctx context.Context, appID int) *CodedError {
 
 	if err := client.Terminate(); err != nil {
 		return NewCodedErrorf(http.StatusServiceUnavailable, "failed to kill app %d: %v", appID, err)
+	}
+	return nil
+}
+
+type DeployApplicationRequest struct {
+	AppID int
+	github.DownloadArtifactRequest
+}
+
+func (s *Service) DeployApplication(ctx context.Context, req *DeployApplicationRequest) *CodedError {
+	if err := s.authenticate(ctx, "DeployApplication "+strconv.Itoa(req.AppID)); err != nil {
+		return err
+	}
+
+	app, ok := s.applicationRepository.Find(req.AppID)
+	if !ok {
+		return NewCodedErrorf(http.StatusNotFound, "no app on id %d in config", req.AppID)
+	}
+
+	// New app shall work, check exists status only.
+	if client, ok := s.appIDToClient[req.AppID]; ok {
+		if !client.Stopped() {
+			return NewCodedErrorf(http.StatusFailedDependency, "deny deploy on running app %d", req.AppID)
+		}
+	}
+
+	request, err := github.NewDownloadArtifactRequest(ctx, req.DownloadArtifactRequest)
+	if err != nil {
+		return NewCodedError(http.StatusBadRequest, err)
+	}
+
+	if err := github.DownloadArtifact(request, app.AbsolutePath()); err != nil {
+		return NewCodedErrorf(http.StatusServiceUnavailable, "can not deploy app %d: %v", req.AppID, err)
 	}
 	return nil
 }

@@ -19,3 +19,10 @@
     path: /home/alex/code/countdowner
     args: [ "--num=3" , ]
     redirectPath: ./bomb_output
+- id: 2001
+  name: server
+  exec:
+    workingDirectory: /tmp
+    path: /tmp/server/server
+    args: [ ]
+    redirectPath: ./server.log

@@ -43,6 +43,18 @@ Token: {{token}}
 DELETE {{host}}/v1/applications/{{appid}}/instances
 Token: {{token}}
 
+### v1PutApplication
+
+PUT {{host}}/v1/applications/{{appid}}
+Token: {{token}}
+
+{
+  "Owner": "hyisen",
+  "Repo": "aiagent",
+  "ArtifactID": 2859166408,
+  "AccessToken": "{{access_token}}"
+}
+
 ### ReloadAppConfig
 
 PUT {{host}}/v1/dashboard/app-config/reload
