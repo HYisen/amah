@@ -6,12 +6,14 @@ import (
 	"amah/client/monitor"
 	"amah/proxy"
 	"amah/service"
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
-	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -30,6 +32,29 @@ var portBasic = flag.Int("portBasic", 8600, "where the control plane serve on lo
 var newUsername = flag.String("newUsername", "", "the new username to generate shadow line to append")
 var newPassword = flag.String("newPassword", "", "the new password to generate shadow line to append")
 
+type GraveyardKeeper struct {
+	servers []*http.Server
+}
+
+func (gk *GraveyardKeeper) Add(server *http.Server) {
+	gk.servers = append(gk.servers, server)
+}
+
+func (gk *GraveyardKeeper) Shutdown(ctx context.Context) error {
+	var ret error
+	for _, server := range gk.servers {
+		// Best effort rather than fail fast, overdose is better than skip in shutdown.
+		ret = errors.Join(server.Shutdown(ctx))
+	}
+	return ret
+}
+
+func LogFatalUnexpectedError(err error) {
+	if !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -43,6 +68,8 @@ func main() {
 	}
 
 	if *normalMode {
+		gk := &GraveyardKeeper{}
+
 		accounts, _ := auth.LoadAccounts(*shadowPath)
 		// Ignore err, init an empty accounts if no shadow file
 		client, err := auth.NewClient(accounts)
@@ -53,34 +80,27 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		c := service.New(client, monitor.NewClient(), repository)
-		// localhost so HTTP is acceptable
-		basic, err := url.Parse(fmt.Sprintf("http://localhost:%d", *portBasic))
-		if err != nil {
-			log.Fatal(err)
-		}
+		c := service.New(client, monitor.NewClient(), repository, gk)
+		basicAddr := "localhost:" + strconv.Itoa(*portBasic)
+		basicServer := &http.Server{Addr: basicAddr, Handler: c}
+		gk.Add(basicServer)
+		slog.Info("starting basic", "addr", basicAddr)
 		go func() {
-			err = http.ListenAndServe(basic.Host, c)
-			log.Fatal(err)
+			LogFatalUnexpectedError(basicServer.ListenAndServe())
 		}()
 
-		if err != nil {
-			log.Fatal(err)
-		}
 		cfg, err := proxy.NewConfig("router.yaml")
 		if err != nil {
 			log.Fatal(err)
 		}
 		p := proxy.New(cfg, client)
-		log.Printf("listen on %s\n", *listenAddress)
+		server := &http.Server{Addr: *listenAddress, Handler: p}
+		gk.Add(server)
+		slog.Info("starting gateway", "addr", *listenAddress)
 		if *certFile == "" && *keyFile == "" {
-			if err = http.ListenAndServe(*listenAddress, p); err != nil {
-				log.Fatal(err)
-			}
+			LogFatalUnexpectedError(server.ListenAndServe())
 		} else {
-			if err = http.ListenAndServeTLS(*listenAddress, *certFile, *keyFile, p); err != nil {
-				log.Fatal(err)
-			}
+			LogFatalUnexpectedError(server.ListenAndServeTLS(*certFile, *keyFile))
 		}
 		return
 	}

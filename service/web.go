@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	. "github.com/hyisen/wf"
+	"log"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -22,20 +23,28 @@ type Service struct {
 	authClient            *auth.Client
 	monitorClient         *monitor.Client
 	applicationRepository *application.Repository
-	appIDToClient         map[int]*application.Client
-	mu                    sync.Mutex // guard actions likes exec with scan that shall escape race condition
-	web                   *Web
+	serverTerminator      CanShutdown
+
+	appIDToClient map[int]*application.Client
+	mu            sync.Mutex // guard actions likes exec with scan that shall escape race condition
+	web           *Web
+}
+
+type CanShutdown interface {
+	Shutdown(ctx context.Context) error
 }
 
 func New(
 	authClient *auth.Client,
 	monitorClient *monitor.Client,
 	applicationRepository *application.Repository,
+	serverTerminator CanShutdown,
 ) *Service {
 	ret := &Service{
 		authClient:            authClient,
 		monitorClient:         monitorClient,
 		applicationRepository: applicationRepository,
+		serverTerminator:      serverTerminator,
 		appIDToClient:         make(map[int]*application.Client),
 		mu:                    sync.Mutex{},
 		web:                   nil,
@@ -141,6 +150,21 @@ func New(
 		json.Marshal,
 		JSONContentType,
 	)
+	v1DeleteSelf := NewClosureHandler(
+		Exact(http.MethodDelete, "/v1/self"),
+		func(data []byte, path string) (req any, err error) {
+			return string(data), nil
+		},
+		func(ctx context.Context, req any) (any, *CodedError) {
+			return nil, ret.StartShutdown(ctx, req.(string))
+		},
+		FormatEmpty,
+		http.DetectContentType(nil),
+	)
+	// Terminate every app one by one takes times.
+	// But as user can execute one more time,
+	// only cover one app time cost shall work.
+	v1DeleteSelf.Timeout = 10 * time.Second
 	v0Forbidden := NewClosureHandler(
 		Exact(http.MethodGet, "/v0/forbidden"),
 		ParseEmpty,
@@ -161,6 +185,7 @@ func New(
 		v1PutApplication,
 		v1PutDashboardAppConfigReload,
 		v1GetApplicationOutput,
+		v1DeleteSelf,
 		v0Forbidden,
 	)
 	return ret
@@ -377,4 +402,31 @@ func (s *Service) GetApplicationOutput(ctx context.Context, appID int) ([]string
 		return nil, NewCodedErrorf(http.StatusNotFound, "app on not exists id %d", appID)
 	}
 	return app.Query(), nil
+}
+
+func (s *Service) StartShutdown(ctx context.Context, message string) *CodedError {
+	if err := s.authenticate(ctx, "StartShutdown"); err != nil {
+		return err
+	}
+
+	if message != "" {
+		slog.Warn("balus", "msg", message)
+	}
+
+	for appID, client := range s.appIDToClient {
+		if err := client.Terminate(); err != nil {
+			return NewCodedErrorf(http.StatusServiceUnavailable, "can not shutdown app %d: %v", appID, err)
+		}
+		slog.Warn(fmt.Sprintf("balus: app %d is down", appID))
+	}
+
+	// Detach to allow shutdown this server.
+	go func() {
+		// Wait a little time to allow caller session finish.
+		time.Sleep(time.Second)
+		if err := s.serverTerminator.Shutdown(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	return nil
 }

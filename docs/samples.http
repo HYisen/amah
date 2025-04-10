@@ -64,3 +64,12 @@ Token: {{token}}
 
 GET {{host}}/v1/applications/{{appid}}/output
 Token: {{token}}
+
+### v1DeleteSelf
+
+DELETE {{host}}/v1/self
+Token: {{token}}
+
+shutdown to upgrade
+
+###
