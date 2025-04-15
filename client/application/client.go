@@ -10,6 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
 )
 
 type Client struct {
@@ -145,16 +148,39 @@ func (c *Client) Terminate() error {
 	}
 
 	// As long as c.cancel not nil, the c.process can not be nil.
-	if err := c.process.Kill(); err != nil {
+	if err := c.process.Signal(syscall.SIGTERM); err != nil {
 		return err
 	}
+
+	executed := &atomic.Bool{}
+	// The 5s latency shall be long enough for normal terminations, and is not too long as an API timeout.
+	go DelayExecution(5*time.Second, c.process, executed)
+
 	if _, err := c.process.Wait(); err != nil {
 		return err
 	}
+	executed.Store(true)
 
 	c.process = nil
 	c.cancel()
 	c.cancel = nil
 	close(c.query)
 	return nil
+}
+
+func DelayExecution(latency time.Duration, process *os.Process, executed *atomic.Bool) {
+	timer := time.NewTimer(latency)
+	_ = <-timer.C
+	if !executed.Load() {
+		if err := process.Kill(); err != nil {
+			// Yes, despite the usage of atomic, it still could race.
+			// As long as the process is terminated but out Wait and set not completed yet,
+			// which could be induced if you add a long time.Sleep right before executed.Store.
+			// But it's usually safe, because even if the process pid is left unchanged after termination,
+			// that pid is less likely to be reused within latency that shall be relatively short.
+			// I just warn it, to help notify if the race does happen in production.
+			slog.Warn("kill process", "pid", process.Pid, "err", err)
+		}
+		slog.Info("killed process as termination timeout", "pid", process.Pid)
+	}
 }
