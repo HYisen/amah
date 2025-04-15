@@ -17,7 +17,7 @@
   exec:
     workingDirectory: /tmp
     path: /home/alex/code/countdowner
-    args: [ "--num=8" , ]
+    args: [ "--num=30" , ]
     redirectPath: ./bomb_output
 - id: 2001
   name: server
