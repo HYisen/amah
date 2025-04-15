@@ -41,5 +41,5 @@ func (c *Client) Kill(pid int) (found bool, err error) {
 	if process.Signal(syscall.Signal(0)) != nil {
 		return false, nil
 	}
-	return true, process.Kill()
+	return true, process.Signal(syscall.SIGTERM)
 }
