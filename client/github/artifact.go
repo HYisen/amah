@@ -1,23 +1,17 @@
 package github
 
 import (
+	. "amah/helpers/ioutil"
 	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 )
-
-func CloseLogError(c io.Closer) {
-	if err := c.Close(); err != nil {
-		slog.Warn("close fail", "err", err)
-	}
-}
 
 func attachmentName(header http.Header) (string, error) {
 	value := header.Get("Content-Disposition")
