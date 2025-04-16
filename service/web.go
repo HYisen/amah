@@ -5,6 +5,7 @@ import (
 	"amah/client/auth"
 	"amah/client/github"
 	"amah/client/monitor"
+	"amah/helpers/ioutil"
 	"context"
 	"encoding/json"
 	"errors"
@@ -345,6 +346,17 @@ func (s *Service) KillApplication(ctx context.Context, appID int) *CodedError {
 
 	if err := client.Terminate(); err != nil {
 		return NewCodedErrorf(http.StatusServiceUnavailable, "failed to kill app %d: %v", appID, err)
+	}
+
+	app, ok := s.applicationRepository.Find(appID)
+	// If the related config has gone, just give up to preserve the log.
+	// Because most likely the config is changed,
+	// and neither new nor old log path deserve a preservation.
+	if !ok {
+		return nil
+	}
+	if err := ioutil.PreserveFile(app.AbsoluteRedirectPath()); err != nil {
+		return NewCodedErrorf(http.StatusInternalServerError, "killed but can not preserve log: %v", err)
 	}
 	return nil
 }
