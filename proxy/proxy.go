@@ -34,6 +34,11 @@ func New(cfg *Config, authClient *auth.Client) *httputil.ReverseProxy {
 }
 
 func authenticate(path string, token string, authClient *auth.Client) bool {
+	if path == "/v1/build-info" {
+		_, ok := authClient.FindValidToken(token)
+		return ok
+	}
+
 	rest, ok := strings.CutPrefix(path, "/v2/users/")
 	if !ok {
 		return false
